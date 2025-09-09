@@ -1,12 +1,13 @@
 import '../models/page_model.dart';
 import '../models/folder_model.dart';
 import '../models/note_model.dart';
-// ...existing code...
+import '../core/db/app_db_sqflite.dart';
+import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 class NotesRepository {
-  // Simple in-memory mock
+  // Keep an in-memory seed for UI, but persist notes to local DB
   final List<PageModel> _pages = [];
-
   NotesRepository() {
     _seed();
   }
@@ -28,5 +29,21 @@ class NotesRepository {
     final p = getPage(pageId);
     if (p == null) return null;
     return p.folders.firstWhere((f) => f.id == folderId, orElse: () => p.folders.first);
+  }
+
+  Future<bool> saveNoteSimple(String content, {String type = 'simple'}) async {
+  final id = Uuid().v4();
+    try {
+      await AppDbSqflite.insertNote({
+        'id': id,
+        'content': content,
+        'type': type,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      return true;
+    } catch (e) {
+      debugPrint('Failed to save note: $e');
+      return false;
+    }
   }
 }
