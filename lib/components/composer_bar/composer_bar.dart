@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../screens/notes/add_note_screen.dart';
-import '../../repositories/notes_repository.dart';
+    } else {
+      debugPrint('➕ فتح خيارات الإضافة...');
+      debugPrint('💡 تلميح: لإرسال ملاحظة سريعة، اكتب نصاً أولاً!');
+      _showAddOptions();
+    }rt '../../repositories/notes_repository.dart';
 
 class ComposerBar extends StatefulWidget {
   final void Function(String)? onSend;
@@ -23,9 +27,10 @@ class _ComposerBarState extends State<ComposerBar> {
     _hasText = _controller.text.trim().isNotEmpty;
     _controller.addListener(() {
       final hasText = _controller.text.trim().isNotEmpty;
+      print('🎯 تغيير النص: "$hasText" (كان: $_hasText)');
       if (hasText != _hasText) {
-        debugPrint('ComposerBar: hasText changed: $hasText');
         setState(() => _hasText = hasText);
+        print('🔄 تم تحديث الحالة: _hasText = $_hasText');
       }
     });
   }
@@ -39,44 +44,59 @@ class _ComposerBarState extends State<ComposerBar> {
   bool get _hasAttachments => (widget.attachments?.isNotEmpty ?? false);
 
   Future<void> _handlePrimaryAction() async {
-    debugPrint('ComposerBar: _handlePrimaryAction called');
-    debugPrint('ComposerBar: _hasText = $_hasText, _hasAttachments = $_hasAttachments');
+    print('🔥 زر الإرسال تم الضغط عليه!');
+    print('🔥 النص موجود: $_hasText');
+    print('🔥 المرفقات موجودة: $_hasAttachments');
+    print('🔥 النص الحالي: "${_controller.text}"');
     
     if (_hasText || _hasAttachments) {
-      debugPrint('ComposerBar: send action with text=${_controller.text} attachments=${widget.attachments}');
+      print('🚀 محاولة إرسال الملاحظة...');
       final content = _controller.text.trim();
-      debugPrint('ComposerBar: content to save = "$content"');
+      
+      if (content.isEmpty) {
+        print('❌ النص فارغ بعد trim!');
+        return;
+      }
 
       try {
         // Call repository to save locally
+        print('💾 استدعاء NotesRepository...');
         final repo = NotesRepository();
-        debugPrint('ComposerBar: calling repo.saveNoteSimple...');
         final success = await repo.saveNoteSimple(content);
-        debugPrint('ComposerBar: saveNoteSimple returned: $success');
+        print('✅ نتيجة الحفظ: $success');
         
         if (success) {
+          print('🎉 تم الحفظ بنجاح!');
           if (widget.onSend != null) {
-            debugPrint('ComposerBar: calling widget.onSend');
             widget.onSend!(content);
           }
-          debugPrint('ComposerBar: clearing text controller');
           _controller.clear();
+          setState(() {
+            _hasText = false;
+          });
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note saved')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('تم حفظ الملاحظة بنجاح! ✅'))
+            );
           }
         } else {
+          print('❌ فشل الحفظ');
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save note')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('فشل في حفظ الملاحظة ❌'))
+            );
           }
         }
       } catch (e) {
-        debugPrint('ComposerBar: Exception in _handlePrimaryAction: $e');
+        print('💥 خطأ: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('خطأ: $e'))
+          );
         }
       }
     } else {
-      debugPrint('ComposerBar: showing add options');
+      print('➕ فتح خيارات الإضافة...');
       _showAddOptions();
     }
   }
@@ -139,6 +159,7 @@ class _ComposerBarState extends State<ComposerBar> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('ComposerBar: build called, _hasText = $_hasText');
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -150,14 +171,24 @@ class _ComposerBarState extends State<ComposerBar> {
             Expanded(
               child: TextField(
                 controller: _controller,
-                decoration: const InputDecoration.collapsed(hintText: 'Write a note...'),
+                decoration: const InputDecoration.collapsed(
+                  hintText: 'اكتب ملاحظة سريعة... (أو اضغط + للخيارات المتقدمة)',
+                ),
+                onSubmitted: (text) {
+                  if (text.trim().isNotEmpty) {
+                    _handlePrimaryAction();
+                  }
+                },
               ),
             ),
             GestureDetector(
               onLongPress: _openAddNote,
               child: IconButton(
                 tooltip: _hasText || _hasAttachments ? 'Send' : 'Add',
-                onPressed: _handlePrimaryAction,
+                onPressed: () {
+                  debugPrint('ComposerBar: IconButton pressed');
+                  _handlePrimaryAction();
+                },
                 icon: Icon(_hasText || _hasAttachments ? Icons.send : Icons.add),
               ),
             ),

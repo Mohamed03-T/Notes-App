@@ -59,11 +59,18 @@ class NotesRepository {
   }
 
   Future<bool> saveNoteSimple(String content, {String type = 'simple'}) async {
+    debugPrint('NotesRepository: saveNoteSimple called with content="$content"');
     final id = Uuid().v4();
+    debugPrint('NotesRepository: generated id = $id');
+    
     try {
       // Save to SharedPreferences
+      debugPrint('NotesRepository: getting SharedPreferences instance...');
       final prefs = await SharedPreferences.getInstance();
+      debugPrint('NotesRepository: got SharedPreferences instance');
+      
       final currentNotes = prefs.getStringList(_notesKey) ?? [];
+      debugPrint('NotesRepository: current notes count = ${currentNotes.length}');
       
       final noteData = {
         'id': id,
@@ -71,20 +78,28 @@ class NotesRepository {
         'type': type,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       };
+      debugPrint('NotesRepository: created noteData = $noteData');
       
       currentNotes.add(jsonEncode(noteData));
+      debugPrint('NotesRepository: added note to list, new count = ${currentNotes.length}');
+      
       await prefs.setStringList(_notesKey, currentNotes);
+      debugPrint('NotesRepository: saved to SharedPreferences');
       
       // Also add to in-memory for immediate UI update
       final newNote = NoteModel(id: id, type: NoteType.text, content: content);
       final folder = getFolder('p1', 'f1');
       if (folder != null) {
         folder.notes.add(newNote);
+        debugPrint('NotesRepository: added to in-memory folder, new folder notes count = ${folder.notes.length}');
+      } else {
+        debugPrint('NotesRepository: WARNING - folder not found');
       }
       
+      debugPrint('NotesRepository: saveNoteSimple returning true');
       return true;
     } catch (e) {
-      debugPrint('Failed to save note: $e');
+      debugPrint('NotesRepository: Failed to save note: $e');
       return false;
     }
   }
