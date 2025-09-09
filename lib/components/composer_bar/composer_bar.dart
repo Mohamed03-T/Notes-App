@@ -39,21 +39,44 @@ class _ComposerBarState extends State<ComposerBar> {
   bool get _hasAttachments => (widget.attachments?.isNotEmpty ?? false);
 
   Future<void> _handlePrimaryAction() async {
+    debugPrint('ComposerBar: _handlePrimaryAction called');
+    debugPrint('ComposerBar: _hasText = $_hasText, _hasAttachments = $_hasAttachments');
+    
     if (_hasText || _hasAttachments) {
       debugPrint('ComposerBar: send action with text=${_controller.text} attachments=${widget.attachments}');
       final content = _controller.text.trim();
+      debugPrint('ComposerBar: content to save = "$content"');
 
-      // Call repository to save locally
-      final repo = NotesRepository();
-      final success = await repo.saveNoteSimple(content);
-      if (success) {
-        if (widget.onSend != null) widget.onSend!(content);
-        _controller.clear();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note saved')));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save note')));
+      try {
+        // Call repository to save locally
+        final repo = NotesRepository();
+        debugPrint('ComposerBar: calling repo.saveNoteSimple...');
+        final success = await repo.saveNoteSimple(content);
+        debugPrint('ComposerBar: saveNoteSimple returned: $success');
+        
+        if (success) {
+          if (widget.onSend != null) {
+            debugPrint('ComposerBar: calling widget.onSend');
+            widget.onSend!(content);
+          }
+          debugPrint('ComposerBar: clearing text controller');
+          _controller.clear();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note saved')));
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save note')));
+          }
+        }
+      } catch (e) {
+        debugPrint('ComposerBar: Exception in _handlePrimaryAction: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
       }
     } else {
+      debugPrint('ComposerBar: showing add options');
       _showAddOptions();
     }
   }

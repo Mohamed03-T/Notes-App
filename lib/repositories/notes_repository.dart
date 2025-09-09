@@ -1,15 +1,42 @@
 import '../models/page_model.dart';
 import '../models/folder_model.dart';
 import '../models/note_model.dart';
-import '../core/db/app_db_sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class NotesRepository {
-  // Keep an in-memory seed for UI, but persist notes to local DB
+  // Keep an in-memory seed for UI, but persist notes to local storage
   final List<PageModel> _pages = [];
+  static const String _notesKey = 'saved_notes';
+
   NotesRepository() {
     _seed();
+    _loadSavedNotes();
+  }
+
+  Future<void> _loadSavedNotes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final notesJson = prefs.getStringList(_notesKey) ?? [];
+      
+      for (final noteStr in notesJson) {
+        final noteData = jsonDecode(noteStr);
+        final note = NoteModel(
+          id: noteData['id'],
+          type: NoteType.text,
+          content: noteData['content'],
+        );
+        
+        final folder = getFolder('p1', 'f1');
+        if (folder != null && !folder.notes.any((n) => n.id == note.id)) {
+          folder.notes.add(note);
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to load notes: $e');
+    }
   }
 
   void _seed() {
@@ -32,14 +59,29 @@ class NotesRepository {
   }
 
   Future<bool> saveNoteSimple(String content, {String type = 'simple'}) async {
-  final id = Uuid().v4();
+    final id = Uuid().v4();
     try {
-      await AppDbSqflite.insertNote({
+      // Save to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final currentNotes = prefs.getStringList(_notesKey) ?? [];
+      
+      final noteData = {
         'id': id,
         'content': content,
         'type': type,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
+      };
+      
+      currentNotes.add(jsonEncode(noteData));
+      await prefs.setStringList(_notesKey, currentNotes);
+      
+      // Also add to in-memory for immediate UI update
+      final newNote = NoteModel(id: id, type: NoteType.text, content: content);
+      final folder = getFolder('p1', 'f1');
+      if (folder != null) {
+        folder.notes.add(newNote);
+      }
+      
       return true;
     } catch (e) {
       debugPrint('Failed to save note: $e');
