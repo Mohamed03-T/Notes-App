@@ -21,6 +21,7 @@ class NotesRepository {
   final List<PageModel> _pages = [];
   static const String _notesKey = 'saved_notes';
   bool _isInitialized = false;
+  bool _hasNewChanges = false; // متغير لتتبع التغييرات الجديدة
 
   NotesRepository._internal();
 
@@ -40,6 +41,12 @@ class NotesRepository {
       await _loadSavedNotes();
       _isInitialized = true;
     }
+  }
+
+  bool get hasNewChanges => _hasNewChanges;
+  
+  void markChangesAsViewed() {
+    _hasNewChanges = false;
   }
 
   Future<void> _loadSavedNotes() async {
@@ -345,6 +352,8 @@ class NotesRepository {
         folder.notes.add(newNote);
         // تحديث وقت المجلد
         _updateFolderTimestamp(pageId, folderId);
+        // وضع علامة على وجود تغييرات جديدة
+        _hasNewChanges = true;
         debugPrint('NotesRepository: added to in-memory folder, new folder notes count = ${folder.notes.length}');
         
         // طباعة حالة جميع المجلدات للتشخيص

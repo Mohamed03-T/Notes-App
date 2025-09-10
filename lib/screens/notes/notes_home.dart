@@ -59,7 +59,6 @@ class _NotesHomeState extends State<NotesHome> {
   @override
   Widget build(BuildContext context) {
     final allPages = repo.getPages();
-    final sortedPages = repo.getPagesSortedByActivity();
     
     // التأكد من أن الفهرس صحيح
     if (currentPageIndex >= allPages.length) {
@@ -77,11 +76,11 @@ class _NotesHomeState extends State<NotesHome> {
 
     return Scaffold(
       appBar: TopBar(
-        pages: sortedPages.map((p) => p.title).toList(),
-        currentPageIndex: _getIndexInSortedList(current, sortedPages),
+        pages: cachedSortedPages.map((p) => p.title).toList(),
+        currentPageIndex: _getIndexInSortedList(current, cachedSortedPages),
         onPageSelected: (index) {
           // العثور على الصفحة المختارة في القائمة الأصلية
-          final selectedPage = sortedPages[index];
+          final selectedPage = cachedSortedPages[index];
           final originalIndex = allPages.indexWhere((p) => p.id == selectedPage.id);
           _selectPage(originalIndex);
         },
@@ -91,6 +90,7 @@ class _NotesHomeState extends State<NotesHome> {
         onRefresh: () async {
           // إعادة تحميل البيانات من التخزين المحلي
           await repo.refreshData();
+          _updateSortedPages(); // تحديث الترتيب فقط عند السحب للتحديث
           setState(() {});
         },
         child: GridView.count(
@@ -105,8 +105,14 @@ class _NotesHomeState extends State<NotesHome> {
                         context,
                         MaterialPageRoute(
                             builder: (_) => FolderNotesScreen(pageId: current.id, folderId: f.id)));
-                    // إعادة تحميل البيانات لتحديث أوقات التعديل والملاحظات الجديدة
+                    
+                    // تحقق من وجود تغييرات جديدة قبل إعادة الترتيب
                     await repo.refreshData();
+                    if (repo.hasNewChanges) {
+                      _updateSortedPages();
+                      repo.markChangesAsViewed();
+                      debugPrint('🔄 تم إعادة ترتيب الصفحات بسبب وجود تغييرات جديدة');
+                    }
                     setState(() {});
                   }))
               .toList(),
