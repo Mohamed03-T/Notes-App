@@ -54,41 +54,48 @@ class _ComposerBarState extends State<ComposerBar> {
         return;
       }
 
-      try {
-        // Call repository to save locally
-        print('💾 استدعاء NotesRepository...');
-        final repo = NotesRepository();
-        final success = await repo.saveNoteSimple(content);
-        print('✅ نتيجة الحفظ: $success');
-        
-        if (success) {
-          print('🎉 تم الحفظ بنجاح!');
-          if (widget.onSend != null) {
-            widget.onSend!(content);
+      // استدعاء callback function إذا كانت متوفرة
+      if (widget.onSend != null) {
+        print('📞 استدعاء onSend callback...');
+        widget.onSend!(content);
+        _controller.clear();
+        setState(() {
+          _hasText = false;
+        });
+      } else {
+        // في حالة عدم توفر callback، استخدم الطريقة القديمة
+        try {
+          print('💾 استدعاء NotesRepository...');
+          final repo = NotesRepository();
+          final success = await repo.saveNoteSimple(content);
+          print('✅ نتيجة الحفظ: $success');
+          
+          if (success) {
+            print('🎉 تم الحفظ بنجاح!');
+            _controller.clear();
+            setState(() {
+              _hasText = false;
+            });
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('تم حفظ الملاحظة بنجاح! ✅'))
+              );
+            }
+          } else {
+            print('❌ فشل الحفظ');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('فشل في حفظ الملاحظة ❌'))
+              );
+            }
           }
-          _controller.clear();
-          setState(() {
-            _hasText = false;
-          });
+        } catch (e) {
+          print('💥 خطأ: $e');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('تم حفظ الملاحظة بنجاح! ✅'))
+              SnackBar(content: Text('خطأ: $e'))
             );
           }
-        } else {
-          print('❌ فشل الحفظ');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('فشل في حفظ الملاحظة ❌'))
-            );
-          }
-        }
-      } catch (e) {
-        print('💥 خطأ: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ: $e'))
-          );
         }
       }
     } else {
