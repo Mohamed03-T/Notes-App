@@ -168,7 +168,7 @@ class _ComposerBarState extends State<ComposerBar> {
               child: TextField(
                 controller: _controller,
                 decoration: const InputDecoration.collapsed(
-                  hintText: 'اكتب ملاحظة سريعة... (أو اضغط + للخيارات المتقدمة)',
+                  hintText: 'اكتب ملاحظة سريعة... (أو اضغط على أيقونة الكتابة للخيارات المتقدمة)',
                 ),
                 onSubmitted: (text) {
                   if (text.trim().isNotEmpty) {
@@ -180,12 +180,12 @@ class _ComposerBarState extends State<ComposerBar> {
             GestureDetector(
               onLongPress: _openAddNote,
               child: IconButton(
-                tooltip: _hasText || _hasAttachments ? 'Send' : 'Add',
+                tooltip: _hasText || _hasAttachments ? 'إرسال' : 'إنشاء ملاحظة',
                 onPressed: () {
                   debugPrint('ComposerBar: IconButton pressed');
                   _handlePrimaryAction();
                 },
-                icon: Icon(_hasText || _hasAttachments ? Icons.send : Icons.add),
+                icon: Icon(_hasText || _hasAttachments ? Icons.send : Icons.edit_note),
               ),
             ),
           ],
