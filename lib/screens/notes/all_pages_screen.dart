@@ -7,7 +7,8 @@ class AllPagesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repo = NotesRepository();
-    final pages = repo.getPages();
+    final allPages = repo.getPages();
+    final sortedPages = repo.getPagesSortedByActivity();
     
     return Scaffold(
       appBar: AppBar(
@@ -18,9 +19,11 @@ class AllPagesScreen extends StatelessWidget {
         color: Colors.grey.shade50,
         child: ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: pages.length,
+          itemCount: sortedPages.length,
           itemBuilder: (context, index) {
-            final page = pages[index];
+            final page = sortedPages[index];
+            final originalIndex = allPages.indexWhere((p) => p.id == page.id);
+            
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
@@ -50,12 +53,34 @@ class AllPagesScreen extends StatelessWidget {
                     size: 24,
                   ),
                 ),
-                title: Text(
-                  page.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        page.title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (index == 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'الأحدث',
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +109,7 @@ class AllPagesScreen extends StatelessWidget {
                   size: 16,
                 ),
                 onTap: () {
-                  Navigator.pop(context, index);
+                  Navigator.pop(context, originalIndex);
                 },
               ),
             );

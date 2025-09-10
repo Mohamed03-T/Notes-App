@@ -17,79 +17,106 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    const maxVisiblePages = 2; // إظهار صفحتين فقط في الشريط
+    const maxVisiblePages = 3; // إظهار 3 صفحات في الشريط
+    
+    // ترتيب الصفحات بحيث تظهر الصفحة الحالية دائماً
+    List<String> visiblePages = [];
+    List<int> visibleIndices = [];
+    
+    if (pages.length <= maxVisiblePages) {
+      // إذا كان عدد الصفحات أقل من أو يساوي 3، اظهرها جميعاً
+      visiblePages = List.from(pages);
+      visibleIndices = List.generate(pages.length, (index) => index);
+    } else {
+      // إذا كان هناك أكثر من 3 صفحات، اظهر الصفحة الحالية و الصفحتين التاليتين
+      visibleIndices.add(currentPageIndex);
+      visiblePages.add(pages[currentPageIndex]);
+      
+      // إضافة صفحتين إضافيتين
+      int added = 1;
+      for (int i = 0; i < pages.length && added < maxVisiblePages; i++) {
+        if (i != currentPageIndex) {
+          visibleIndices.add(i);
+          visiblePages.add(pages[i]);
+          added++;
+        }
+      }
+    }
     
     return AppBar(
       toolbarHeight: AppTokens.topBarHeight,
-      title: Row(
-        children: [
-          // إظهار الصفحات المرئية
-          for (var i = 0; i < (pages.length > maxVisiblePages ? maxVisiblePages : pages.length); i++)
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: GestureDetector(
-                onTap: () => onPageSelected?.call(i),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: i == currentPageIndex ? Colors.blue.shade100 : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: i == currentPageIndex ? Colors.blue.shade300 : Colors.grey.shade300,
-                      width: 1,
+      title: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            // إظهار الصفحات المرئية
+            for (var i = 0; i < visiblePages.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(left: 6.0),
+                child: GestureDetector(
+                  onTap: () => onPageSelected?.call(visibleIndices[i]),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: visibleIndices[i] == currentPageIndex ? Colors.blue.shade100 : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: visibleIndices[i] == currentPageIndex ? Colors.blue.shade300 : Colors.grey.shade300,
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    pages[i],
-                    style: TextStyle(
-                      color: i == currentPageIndex ? Colors.blue.shade700 : Colors.grey.shade700,
-                      fontWeight: i == currentPageIndex ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 14,
+                    child: Text(
+                      visiblePages[i],
+                      style: TextStyle(
+                        color: visibleIndices[i] == currentPageIndex ? Colors.blue.shade700 : Colors.grey.shade700,
+                        fontWeight: visibleIndices[i] == currentPageIndex ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          
-          // زر "المزيد" إذا كان هناك صفحات إضافية
-          if (pages.length > maxVisiblePages)
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: GestureDetector(
-                onTap: onMorePressed,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.orange.shade200,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.apps,
-                        size: 16,
-                        color: Colors.orange.shade700,
+            
+            // زر "المزيد" إذا كان هناك صفحات إضافية
+            if (pages.length > maxVisiblePages)
+              Padding(
+                padding: const EdgeInsets.only(left: 6.0),
+                child: GestureDetector(
+                  onTap: onMorePressed,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.orange.shade200,
+                        width: 1,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '+${pages.length - maxVisiblePages}',
-                        style: TextStyle(
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.apps,
+                          size: 14,
                           color: Colors.orange.shade700,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 3),
+                        Text(
+                          '+${pages.length - maxVisiblePages}',
+                          style: TextStyle(
+                            color: Colors.orange.shade700,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

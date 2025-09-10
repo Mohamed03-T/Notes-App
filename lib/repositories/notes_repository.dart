@@ -135,17 +135,18 @@ class NotesRepository {
     final now = DateTime.now();
     final workNote1 = NoteModel(id: 'wn1', type: NoteType.text, content: 'اجتماع مع الفريق غداً');
     final workNote2 = NoteModel(id: 'wn2', type: NoteType.text, content: 'مراجعة التقرير الشهري');
+    final workNote3 = NoteModel(id: 'wn3', type: NoteType.text, content: 'تطوير الميزة الجديدة');
     
     final meetingsFolder = FolderModel(
       id: 'wf1',
       title: 'اجتماعات',
       notes: [workNote1],
-      updatedAt: now.subtract(const Duration(hours: 3)),
+      updatedAt: now.subtract(const Duration(minutes: 15)), // تحديث حديث
     );
     final tasksFolder = FolderModel(
       id: 'wf2',
       title: 'مهام العمل',
-      notes: [workNote2],
+      notes: [workNote2, workNote3],
       updatedAt: now.subtract(const Duration(hours: 1)),
     );
     final projectsFolder = FolderModel(
@@ -227,6 +228,31 @@ class NotesRepository {
   }
 
   List<PageModel> getPages() => _pages;
+
+  List<PageModel> getPagesSortedByActivity() {
+    final sortedPages = List<PageModel>.from(_pages);
+    
+    // ترتيب الصفحات حسب آخر نشاط (أحدث مجلد تم تعديله في كل صفحة)
+    sortedPages.sort((a, b) {
+      final aLatest = _getLatestFolderUpdate(a);
+      final bLatest = _getLatestFolderUpdate(b);
+      return bLatest.compareTo(aLatest); // ترتيب تنازلي (الأحدث أولاً)
+    });
+    
+    return sortedPages;
+  }
+
+  DateTime _getLatestFolderUpdate(PageModel page) {
+    if (page.folders.isEmpty) return DateTime(2000); // تاريخ قديم للصفحات الفارغة
+    
+    DateTime latest = page.folders.first.updatedAt;
+    for (final folder in page.folders) {
+      if (folder.updatedAt.isAfter(latest)) {
+        latest = folder.updatedAt;
+      }
+    }
+    return latest;
+  }
 
   PageModel? getPage(String id) => _pages.firstWhere((p) => p.id == id, orElse: () => _pages.first);
 
@@ -391,5 +417,21 @@ class NotesRepository {
     } catch (e) {
       debugPrint('❌ فشل في قراءة الملاحظات المحفوظة: $e');
     }
+  }
+
+  // دالة لإعادة تحميل البيانات من التخزين المحلي
+  Future<void> refreshData() async {
+    debugPrint('🔄 إعادة تحميل البيانات...');
+    
+    // مسح البيانات الحالية
+    for (final page in _pages) {
+      for (final folder in page.folders) {
+        folder.notes.clear();
+      }
+    }
+    
+    // إعادة تحميل الملاحظات من SharedPreferences
+    await _loadSavedNotes();
+    debugPrint('✅ تم إعادة تحميل البيانات بنجاح');
   }
 }
