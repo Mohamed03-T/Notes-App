@@ -87,13 +87,34 @@ class NotesRepository {
       return;
     }
 
-    final note1 = NoteModel(id: 'n1', type: NoteType.text, content: 'Hello from note 1');
-    final note2 = NoteModel(id: 'n2', type: NoteType.text, content: 'Second note');
+    final note1 = NoteModel(id: 'n1', type: NoteType.text, content: 'مرحباً من الملاحظة الأولى');
+    final note2 = NoteModel(id: 'n2', type: NoteType.text, content: 'هذه ملاحظة تجريبية ثانية');
 
-    final folder1 = FolderModel(id: 'f1', title: 'العام', notes: [note1, note2]);
-    final folder2 = FolderModel(id: 'f2', title: 'أفكار', notes: []);
-    final folder3 = FolderModel(id: 'f3', title: 'مهام', notes: []);
-    final folder4 = FolderModel(id: 'f4', title: 'مذكرات', notes: []);
+    final now = DateTime.now();
+    final folder1 = FolderModel(
+      id: 'f1', 
+      title: 'العام', 
+      notes: [note1, note2],
+      updatedAt: now.subtract(const Duration(hours: 2)),
+    );
+    final folder2 = FolderModel(
+      id: 'f2', 
+      title: 'أفكار', 
+      notes: [],
+      updatedAt: now.subtract(const Duration(days: 1)),
+    );
+    final folder3 = FolderModel(
+      id: 'f3', 
+      title: 'مهام', 
+      notes: [],
+      updatedAt: now.subtract(const Duration(hours: 6)),
+    );
+    final folder4 = FolderModel(
+      id: 'f4', 
+      title: 'مذكرات', 
+      notes: [],
+      updatedAt: now.subtract(const Duration(minutes: 30)),
+    );
     
     final page = PageModel(id: 'p1', title: 'شخصي', folders: [folder1, folder2, folder3, folder4]);
     _pages.add(page);
@@ -192,6 +213,8 @@ class NotesRepository {
       final folder = getFolder(pageId, folderId);
       if (folder != null) {
         folder.notes.add(newNote);
+        // تحديث وقت المجلد
+        _updateFolderTimestamp(pageId, folderId);
         debugPrint('NotesRepository: added to in-memory folder, new folder notes count = ${folder.notes.length}');
         
         // طباعة حالة جميع المجلدات للتشخيص
@@ -217,6 +240,25 @@ class NotesRepository {
         for (final note in folder.notes) {
           debugPrint('    📝 ملاحظة: ${note.content}');
         }
+      }
+    }
+  }
+
+  void _updateFolderTimestamp(String pageId, String folderId) {
+    final page = getPage(pageId);
+    if (page != null) {
+      final folderIndex = page.folders.indexWhere((f) => f.id == folderId);
+      if (folderIndex != -1) {
+        // إنشاء مجلد جديد بنفس البيانات لكن بوقت محدث
+        final oldFolder = page.folders[folderIndex];
+        final updatedFolder = FolderModel(
+          id: oldFolder.id,
+          title: oldFolder.title,
+          notes: oldFolder.notes,
+          updatedAt: DateTime.now(),
+        );
+        page.folders[folderIndex] = updatedFolder;
+        debugPrint('⏰ تم تحديث وقت المجلد ${oldFolder.title}');
       }
     }
   }
