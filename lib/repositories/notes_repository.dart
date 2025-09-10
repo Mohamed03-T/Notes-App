@@ -87,6 +87,17 @@ class NotesRepository {
       return;
     }
 
+    // إنشاء الصفحات المختلفة
+    _createPersonalPage();
+    _createWorkPage();
+    _createStudyPage();
+    _createProjectsPage();
+    _createHealthPage();
+    
+    debugPrint('📋 تم إنشاء ${_pages.length} صفحات تجريبية');
+  }
+
+  void _createPersonalPage() {
     final note1 = NoteModel(id: 'n1', type: NoteType.text, content: 'مرحباً من الملاحظة الأولى');
     final note2 = NoteModel(id: 'n2', type: NoteType.text, content: 'هذه ملاحظة تجريبية ثانية');
 
@@ -118,8 +129,101 @@ class NotesRepository {
     
     final page = PageModel(id: 'p1', title: 'شخصي', folders: [folder1, folder2, folder3, folder4]);
     _pages.add(page);
+  }
+
+  void _createWorkPage() {
+    final now = DateTime.now();
+    final workNote1 = NoteModel(id: 'wn1', type: NoteType.text, content: 'اجتماع مع الفريق غداً');
+    final workNote2 = NoteModel(id: 'wn2', type: NoteType.text, content: 'مراجعة التقرير الشهري');
     
-    debugPrint('📋 تم إنشاء البيانات التجريبية');
+    final meetingsFolder = FolderModel(
+      id: 'wf1',
+      title: 'اجتماعات',
+      notes: [workNote1],
+      updatedAt: now.subtract(const Duration(hours: 3)),
+    );
+    final tasksFolder = FolderModel(
+      id: 'wf2',
+      title: 'مهام العمل',
+      notes: [workNote2],
+      updatedAt: now.subtract(const Duration(hours: 1)),
+    );
+    final projectsFolder = FolderModel(
+      id: 'wf3',
+      title: 'مشاريع',
+      notes: [],
+      updatedAt: now.subtract(const Duration(days: 2)),
+    );
+    
+    final workPage = PageModel(id: 'p2', title: 'العمل', folders: [meetingsFolder, tasksFolder, projectsFolder]);
+    _pages.add(workPage);
+  }
+
+  void _createStudyPage() {
+    final now = DateTime.now();
+    final studyNote1 = NoteModel(id: 'sn1', type: NoteType.text, content: 'مراجعة الفصل الثالث');
+    
+    final notesFolder = FolderModel(
+      id: 'sf1',
+      title: 'ملاحظات الدراسة',
+      notes: [studyNote1],
+      updatedAt: now.subtract(const Duration(hours: 4)),
+    );
+    final homeworkFolder = FolderModel(
+      id: 'sf2',
+      title: 'واجبات',
+      notes: [],
+      updatedAt: now.subtract(const Duration(days: 1)),
+    );
+    final examsFolder = FolderModel(
+      id: 'sf3',
+      title: 'امتحانات',
+      notes: [],
+      updatedAt: now.subtract(const Duration(hours: 8)),
+    );
+    
+    final studyPage = PageModel(id: 'p3', title: 'الدراسة', folders: [notesFolder, homeworkFolder, examsFolder]);
+    _pages.add(studyPage);
+  }
+
+  void _createProjectsPage() {
+    final now = DateTime.now();
+    
+    final appDevFolder = FolderModel(
+      id: 'pf1',
+      title: 'تطوير التطبيقات',
+      notes: [],
+      updatedAt: now.subtract(const Duration(days: 3)),
+    );
+    final webDevFolder = FolderModel(
+      id: 'pf2',
+      title: 'تطوير المواقع',
+      notes: [],
+      updatedAt: now.subtract(const Duration(hours: 12)),
+    );
+    
+    final projectsPage = PageModel(id: 'p4', title: 'المشاريع', folders: [appDevFolder, webDevFolder]);
+    _pages.add(projectsPage);
+  }
+
+  void _createHealthPage() {
+    final now = DateTime.now();
+    
+    final workoutFolder = FolderModel(
+      id: 'hf1',
+      title: 'تمارين',
+      notes: [],
+      updatedAt: now.subtract(const Duration(hours: 18)),
+    );
+    final dietFolder = FolderModel(
+      id: 'hf2',
+      title: 'نظام غذائي',
+      notes: [],
+      updatedAt: now.subtract(const Duration(days: 2)),
+    );
+    
+    final healthPage = PageModel(id: 'p5', title: 'الصحة', folders: [workoutFolder, dietFolder]);
+    _pages.add(healthPage);
   }
 
   List<PageModel> getPages() => _pages;

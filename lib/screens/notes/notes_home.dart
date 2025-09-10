@@ -14,6 +14,7 @@ class NotesHome extends StatefulWidget {
 
 class _NotesHomeState extends State<NotesHome> {
   late NotesRepository repo;
+  int currentPageIndex = 0;
 
   @override
   void initState() {
@@ -21,15 +22,49 @@ class _NotesHomeState extends State<NotesHome> {
     repo = NotesRepository();
   }
 
+  void _selectPage(int index) {
+    setState(() {
+      currentPageIndex = index;
+    });
+  }
+
+  void _openAllPagesScreen() async {
+    final selectedPageIndex = await Navigator.push<int>(
+      context, 
+      MaterialPageRoute(builder: (_) => const AllPagesScreen())
+    );
+    
+    if (selectedPageIndex != null) {
+      setState(() {
+        currentPageIndex = selectedPageIndex;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = repo.getPages();
-    final current = pages.first;
+    
+    // التأكد من أن الفهرس صحيح
+    if (currentPageIndex >= pages.length) {
+      currentPageIndex = 0;
+    }
+    
+    final current = pages.isNotEmpty ? pages[currentPageIndex] : null;
+
+    if (current == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('لا توجد صفحات')),
+        body: const Center(child: Text('لا توجد صفحات متاحة')),
+      );
+    }
 
     return Scaffold(
       appBar: TopBar(
         pages: pages.map((p) => p.title).toList(),
-        onMorePressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllPagesScreen())),
+        currentPageIndex: currentPageIndex,
+        onPageSelected: _selectPage,
+        onMorePressed: _openAllPagesScreen,
       ),
       body: RefreshIndicator(
         onRefresh: () async {
