@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../components/top_bar/top_bar.dart';
 import '../../repositories/notes_repository.dart';
 import '../../components/folder_card/folder_card.dart';
-import '../../models/page_model.dart';
 import 'folder_notes_screen.dart';
 import 'all_pages_screen.dart';
 
@@ -16,31 +15,17 @@ class NotesHome extends StatefulWidget {
 class _NotesHomeState extends State<NotesHome> {
   late NotesRepository repo;
   int currentPageIndex = 0;
-  List<PageModel> cachedSortedPages = [];
-  DateTime lastSortTime = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     repo = NotesRepository();
-    _updateSortedPages();
-  }
-
-  void _updateSortedPages() {
-    cachedSortedPages = repo.getPagesSortedByActivity();
-    lastSortTime = DateTime.now();
-    debugPrint('🔄 تم تحديث ترتيب الصفحات');
   }
 
   void _selectPage(int index) {
     setState(() {
       currentPageIndex = index;
     });
-  }
-
-  int _getIndexInSortedList(PageModel currentPage, List<PageModel> sortedPages) {
-    final index = sortedPages.indexWhere((p) => p.id == currentPage.id);
-    return index >= 0 ? index : 0;
   }
 
   void _openAllPagesScreen() async {
@@ -58,7 +43,7 @@ class _NotesHomeState extends State<NotesHome> {
 
   @override
   Widget build(BuildContext context) {
-    final allPages = repo.getPages();
+    final allPages = repo.getPages(); // استخدام الترتيب الأصلي الثابت
     
     // التأكد من أن الفهرس صحيح
     if (currentPageIndex >= allPages.length) {
@@ -76,21 +61,15 @@ class _NotesHomeState extends State<NotesHome> {
 
     return Scaffold(
       appBar: TopBar(
-        pages: cachedSortedPages.map((p) => p.title).toList(),
-        currentPageIndex: _getIndexInSortedList(current, cachedSortedPages),
-        onPageSelected: (index) {
-          // العثور على الصفحة المختارة في القائمة الأصلية
-          final selectedPage = cachedSortedPages[index];
-          final originalIndex = allPages.indexWhere((p) => p.id == selectedPage.id);
-          _selectPage(originalIndex);
-        },
+        pages: allPages.map((p) => p.title).toList(), // الترتيب الأصلي
+        currentPageIndex: currentPageIndex, // الفهرس الحقيقي
+        onPageSelected: _selectPage, // التنقل العادي
         onMorePressed: _openAllPagesScreen,
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          // إعادة تحميل البيانات من التخزين المحلي
+          // إعادة تحميل البيانات من التخزين المحلي فقط
           await repo.refreshData();
-          _updateSortedPages(); // تحديث الترتيب فقط عند السحب للتحديث
           setState(() {});
         },
         child: GridView.count(
@@ -106,13 +85,8 @@ class _NotesHomeState extends State<NotesHome> {
                         MaterialPageRoute(
                             builder: (_) => FolderNotesScreen(pageId: current.id, folderId: f.id)));
                     
-                    // تحقق من وجود تغييرات جديدة قبل إعادة الترتيب
+                    // فقط إعادة تحميل البيانات، بدون تغيير الترتيب
                     await repo.refreshData();
-                    if (repo.hasNewChanges) {
-                      _updateSortedPages();
-                      repo.markChangesAsViewed();
-                      debugPrint('🔄 تم إعادة ترتيب الصفحات بسبب وجود تغييرات جديدة');
-                    }
                     setState(() {});
                   }))
               .toList(),
