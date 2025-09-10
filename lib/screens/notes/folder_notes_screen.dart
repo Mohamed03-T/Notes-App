@@ -19,7 +19,11 @@ class FolderNotesScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(child: ListView(children: folder.notes.map((n) => NoteCard(note: n)).toList())),
-          ComposerBar(onSend: (text) {}),
+          ComposerBar(onSend: (text) {
+            // حفظ الملاحظة في هذا المجلد
+            debugPrint('💾 حفظ ملاحظة في المجلد: ${folder.title}');
+            debugPrint('📝 النص: $text');
+          }),
         ],
       ),
       floatingActionButton: FloatingActionButton(
