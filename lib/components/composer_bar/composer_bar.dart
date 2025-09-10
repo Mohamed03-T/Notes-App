@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../screens/notes/add_note_screen.dart';
-    } else {
-      debugPrint('➕ فتح خيارات الإضافة...');
-      debugPrint('💡 تلميح: لإرسال ملاحظة سريعة، اكتب نصاً أولاً!');
-      _showAddOptions();
-    }rt '../../repositories/notes_repository.dart';
+import '../../repositories/notes_repository.dart';
 
 class ComposerBar extends StatefulWidget {
   final void Function(String)? onSend;
