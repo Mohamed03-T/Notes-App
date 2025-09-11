@@ -74,10 +74,8 @@ class _NotesHomeState extends State<NotesHome> {
         originalIndices: useSorted ? List.generate(sortedPages.length, (i) => allPages.indexWhere((p) => p.id == sortedPages[i].id)) : null,
         currentPageIndex: currentPageIndex, // الفهرس الحقيقي
         onPageSelected: (int origIndex) {
-          // عند اختيار الصفحة من الشريط، اعتبر التغييرات قد تم الاطلاع عليها
-          if (repo.hasNewChanges) {
-            repo.markChangesAsViewed();
-          }
+          // فقط انتقل إلى الصفحة المحددة. لا نعلم التغييرات كمطلّعة هنا
+          // لأن ذلك يغيّر طريقة العرض من المصنّف إلى الأصلي فوراً ويُحدث إعادة ترتيب
           _selectPage(origIndex);
         }, // التنقل العادي بدون تغيير ترتيب
         onMorePressed: _openAllPagesScreen,

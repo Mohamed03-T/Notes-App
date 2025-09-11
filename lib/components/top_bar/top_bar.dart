@@ -25,24 +25,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   List<String> visiblePages = [];
   List<int> visibleIndices = [];
     
+    // أبسط سلوك: اعرض أول N صفحات من القائمة المعطاة (لا نعيد ترتيب العناصر عند النقر)
     if (pages.length <= maxVisiblePages) {
-      // إذا كان عدد الصفحات أقل من أو يساوي 3، اظهرها جميعاً
       visiblePages = List.from(pages);
       visibleIndices = List.generate(pages.length, (index) => index);
     } else {
-      // إذا كان هناك أكثر من 3 صفحات، اظهر الصفحة الحالية و الصفحتين التاليتين
-      visibleIndices.add(currentPageIndex);
-      visiblePages.add(pages[currentPageIndex]);
-      
-      // إضافة صفحتين إضافيتين
-      int added = 1;
-      for (int i = 0; i < pages.length && added < maxVisiblePages; i++) {
-        if (i != currentPageIndex) {
-          visibleIndices.add(i);
-          visiblePages.add(pages[i]);
-          added++;
-        }
-      }
+      visiblePages = pages.sublist(0, maxVisiblePages);
+      visibleIndices = List.generate(maxVisiblePages, (index) => index);
     }
     
     return AppBar(
@@ -57,11 +46,11 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 padding: const EdgeInsets.only(left: 6.0),
                 child: GestureDetector(
                   onTap: () {
-                    // map the displayed index back to the original index if provided
-                    final int originalIndex = (originalIndices != null && visibleIndices[i] < originalIndices!.length)
-                        ? originalIndices![visibleIndices[i]]
-                        : visibleIndices[i];
-                    onPageSelected?.call(originalIndex);
+          // map the displayed index back to the original index if provided
+          final int mappedOriginal = (originalIndices != null && visibleIndices[i] < originalIndices!.length)
+            ? originalIndices![visibleIndices[i]]
+            : visibleIndices[i];
+          onPageSelected?.call(mappedOriginal);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -85,14 +74,14 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                     child: Text(
                       visiblePages[i],
                       style: TextStyle(
-                        color: ((originalIndices != null && visibleIndices[i] < originalIndices!.length)
-                                ? (originalIndices![visibleIndices[i]] == currentPageIndex)
-                                : (visibleIndices[i] == currentPageIndex))
+      color: ((originalIndices != null && visibleIndices[i] < originalIndices!.length)
+        ? (originalIndices![visibleIndices[i]] == currentPageIndex)
+        : (visibleIndices[i] == currentPageIndex))
                             ? Colors.blue.shade700
                             : Colors.grey.shade700,
-                        fontWeight: ((originalIndices != null && visibleIndices[i] < originalIndices!.length)
-                                ? (originalIndices![visibleIndices[i]] == currentPageIndex)
-                                : (visibleIndices[i] == currentPageIndex))
+      fontWeight: ((originalIndices != null && visibleIndices[i] < originalIndices!.length)
+        ? (originalIndices![visibleIndices[i]] == currentPageIndex)
+        : (visibleIndices[i] == currentPageIndex))
                             ? FontWeight.bold
                             : FontWeight.normal,
                         fontSize: 13,
@@ -128,7 +117,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          '+${pages.length - maxVisiblePages}',
+                          '+${pages.length - visiblePages.length}',
                           style: TextStyle(
                             color: Colors.orange.shade700,
                             fontWeight: FontWeight.bold,
