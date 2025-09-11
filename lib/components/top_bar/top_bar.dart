@@ -5,23 +5,25 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<String> pages;
   final int currentPageIndex;
   final Function(int)? onPageSelected;
+  final List<int>? originalIndices; // mapping from displayed pages to original indices
   final VoidCallback? onMorePressed;
 
   const TopBar({
-    Key? key, 
-    this.pages = const [], 
+    Key? key,
+    this.pages = const [],
     this.currentPageIndex = 0,
     this.onPageSelected,
-    this.onMorePressed
+    this.originalIndices,
+    this.onMorePressed,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     const maxVisiblePages = 3; // إظهار 3 صفحات في الشريط
     
-    // ترتيب الصفحات بحيث تظهر الصفحة الحالية دائماً
-    List<String> visiblePages = [];
-    List<int> visibleIndices = [];
+  // ترتيب الصفحات بحيث تظهر الصفحة الحالية دائماً
+  List<String> visiblePages = [];
+  List<int> visibleIndices = [];
     
     if (pages.length <= maxVisiblePages) {
       // إذا كان عدد الصفحات أقل من أو يساوي 3، اظهرها جميعاً
@@ -54,22 +56,45 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 6.0),
                 child: GestureDetector(
-                  onTap: () => onPageSelected?.call(visibleIndices[i]),
+                  onTap: () {
+                    // map the displayed index back to the original index if provided
+                    final int originalIndex = (originalIndices != null && visibleIndices[i] < originalIndices!.length)
+                        ? originalIndices![visibleIndices[i]]
+                        : visibleIndices[i];
+                    onPageSelected?.call(originalIndex);
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: visibleIndices[i] == currentPageIndex ? Colors.blue.shade100 : Colors.grey.shade100,
+                      // determine if this displayed page corresponds to the selected original index
+                      color: ((originalIndices != null && visibleIndices[i] < originalIndices!.length)
+                              ? (originalIndices![visibleIndices[i]] == currentPageIndex)
+                              : (visibleIndices[i] == currentPageIndex))
+                          ? Colors.blue.shade100
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: visibleIndices[i] == currentPageIndex ? Colors.blue.shade300 : Colors.grey.shade300,
+                        color: ((originalIndices != null && visibleIndices[i] < originalIndices!.length)
+                                ? (originalIndices![visibleIndices[i]] == currentPageIndex)
+                                : (visibleIndices[i] == currentPageIndex))
+                            ? Colors.blue.shade300
+                            : Colors.grey.shade300,
                         width: 1,
                       ),
                     ),
                     child: Text(
                       visiblePages[i],
                       style: TextStyle(
-                        color: visibleIndices[i] == currentPageIndex ? Colors.blue.shade700 : Colors.grey.shade700,
-                        fontWeight: visibleIndices[i] == currentPageIndex ? FontWeight.bold : FontWeight.normal,
+                        color: ((originalIndices != null && visibleIndices[i] < originalIndices!.length)
+                                ? (originalIndices![visibleIndices[i]] == currentPageIndex)
+                                : (visibleIndices[i] == currentPageIndex))
+                            ? Colors.blue.shade700
+                            : Colors.grey.shade700,
+                        fontWeight: ((originalIndices != null && visibleIndices[i] < originalIndices!.length)
+                                ? (originalIndices![visibleIndices[i]] == currentPageIndex)
+                                : (visibleIndices[i] == currentPageIndex))
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         fontSize: 13,
                       ),
                     ),

@@ -23,6 +23,7 @@ class _NotesHomeState extends State<NotesHome> {
   }
 
   void _selectPage(int index) {
+    debugPrint('🔄 تم اختيار الصفحة بالفهرس: $index');
     setState(() {
       currentPageIndex = index;
     });
@@ -43,7 +44,10 @@ class _NotesHomeState extends State<NotesHome> {
 
   @override
   Widget build(BuildContext context) {
-    final allPages = repo.getPages(); // استخدام الترتيب الأصلي الثابت
+  final allPages = repo.getPages(); // ترتيب الصفحات الأصلي
+  // إذا كانت هناك تغييرات جديدة، استخدم الترتيب حسب النشاط لعرض الشرائح
+  final bool useSorted = repo.hasNewChanges;
+  final sortedPages = useSorted ? repo.getPagesSortedByActivity() : allPages;
     
     // التأكد من أن الفهرس صحيح
     if (currentPageIndex >= allPages.length) {
@@ -59,11 +63,23 @@ class _NotesHomeState extends State<NotesHome> {
       );
     }
 
+  debugPrint('🔍 الصفحة الحالية: ${current.title} (فهرس: $currentPageIndex)');
+  debugPrint('🔍 استخدام الترتيب المصنف؟ $useSorted');
+
     return Scaffold(
       appBar: TopBar(
-        pages: allPages.map((p) => p.title).toList(), // الترتيب الأصلي
+        // إذا كنا نستخدم الترتيب المصنّف، أعرض عناوين الصفحات المصنفة
+        pages: (useSorted ? sortedPages : allPages).map((p) => p.title).toList(),
+        // بناء خريطة من مواضع العرض إلى المواضع الأصلية بحيث لا نخسر الفهرس الحقيقي
+        originalIndices: useSorted ? List.generate(sortedPages.length, (i) => allPages.indexWhere((p) => p.id == sortedPages[i].id)) : null,
         currentPageIndex: currentPageIndex, // الفهرس الحقيقي
-        onPageSelected: _selectPage, // التنقل العادي
+        onPageSelected: (int origIndex) {
+          // عند اختيار الصفحة من الشريط، اعتبر التغييرات قد تم الاطلاع عليها
+          if (repo.hasNewChanges) {
+            repo.markChangesAsViewed();
+          }
+          _selectPage(origIndex);
+        }, // التنقل العادي بدون تغيير ترتيب
         onMorePressed: _openAllPagesScreen,
       ),
       body: RefreshIndicator(
