@@ -33,6 +33,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       visiblePages = pages.sublist(0, maxVisiblePages);
       visibleIndices = List.generate(maxVisiblePages, (index) => index);
     }
+  // حساب العدد الكلي والعدد المخفي للاستخدام في زر 'المزيد'
+  final int totalPagesCount = (originalIndices != null && originalIndices!.isNotEmpty) ? originalIndices!.length : pages.length;
+  final int hiddenCount = (totalPagesCount - visiblePages.length) > 0 ? (totalPagesCount - visiblePages.length) : 0;
     
     return AppBar(
       toolbarHeight: AppTokens.topBarHeight,
@@ -92,7 +95,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             
             // زر "المزيد" إذا كان هناك صفحات إضافية
-            if (pages.length > maxVisiblePages)
+            if (totalPagesCount > visiblePages.length)
               Padding(
                 padding: const EdgeInsets.only(left: 6.0),
                 child: GestureDetector(
@@ -117,7 +120,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          '+${pages.length - visiblePages.length}',
+                          '+$hiddenCount',
                           style: TextStyle(
                             color: Colors.orange.shade700,
                             fontWeight: FontWeight.bold,
