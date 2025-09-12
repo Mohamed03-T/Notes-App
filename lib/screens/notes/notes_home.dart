@@ -4,6 +4,8 @@ import '../../repositories/notes_repository.dart';
 import '../../components/folder_card/folder_card.dart';
 import 'folder_notes_screen.dart';
 import 'all_pages_screen.dart';
+import 'add_folder_screen.dart';
+import 'add_page_screen.dart';
 
 class NotesHome extends StatefulWidget {
   const NotesHome({Key? key}) : super(key: key);
@@ -42,6 +44,24 @@ class _NotesHomeState extends State<NotesHome> {
     }
   }
 
+  void _addNewPage() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddPageScreen()),
+    );
+    
+    if (result != null) {
+      // تحديث الشاشة وانتقل إلى الصفحة الجديدة
+      final allPages = repo.getPages();
+      final newPageIndex = allPages.indexWhere((page) => page.id == result);
+      if (newPageIndex != -1) {
+        setState(() {
+          currentPageIndex = newPageIndex;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
   final allPages = repo.getPages(); // ترتيب الصفحات الأصلي
@@ -73,12 +93,14 @@ class _NotesHomeState extends State<NotesHome> {
         // بناء خريطة من مواضع العرض إلى المواضع الأصلية بحيث لا نخسر الفهرس الحقيقي
         originalIndices: useSorted ? List.generate(sortedPages.length, (i) => allPages.indexWhere((p) => p.id == sortedPages[i].id)) : null,
         currentPageIndex: currentPageIndex, // الفهرس الحقيقي
+        totalPagesCount: allPages.length, // العدد الكلي للصفحات الأصلية
         onPageSelected: (int origIndex) {
           // فقط انتقل إلى الصفحة المحددة. لا نعلم التغييرات كمطلّعة هنا
           // لأن ذلك يغيّر طريقة العرض من المصنّف إلى الأصلي فوراً ويُحدث إعادة ترتيب
           _selectPage(origIndex);
         }, // التنقل العادي بدون تغيير ترتيب
         onMorePressed: _openAllPagesScreen,
+        onAddPagePressed: _addNewPage, // إضافة دالة إضافة الصفحة
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -105,6 +127,27 @@ class _NotesHomeState extends State<NotesHome> {
                   }))
               .toList(),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push<String>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddFolderScreen(
+                pageId: current.id,
+                page: current,
+              ),
+            ),
+          );
+          
+          if (result != null) {
+            // تحديث الشاشة بعد إضافة مجلد جديد
+            setState(() {});
+          }
+        },
+        backgroundColor: Colors.blue,
+        tooltip: 'إضافة مجلد جديد',
+        child: const Icon(Icons.create_new_folder, color: Colors.white),
       ),
     );
   }

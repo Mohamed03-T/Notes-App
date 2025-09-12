@@ -59,10 +59,21 @@ class NotesRepository {
       for (final noteStr in notesJson) {
         try {
           final noteData = jsonDecode(noteStr);
+          // استخدم createdAt المخزن إن وُجد للحفاظ على الطابع الزمني الحقيقي للملاحظة
+          DateTime? createdAt;
+          if (noteData['createdAt'] != null) {
+            try {
+              createdAt = DateTime.fromMillisecondsSinceEpoch(noteData['createdAt']);
+            } catch (_) {
+              createdAt = null;
+            }
+          }
+
           final note = NoteModel(
             id: noteData['id'],
             type: NoteType.text,
             content: noteData['content'],
+            createdAt: createdAt,
           );
           
           // Check if note has folder info, otherwise default to first folder
@@ -83,8 +94,32 @@ class NotesRepository {
         }
       }
       debugPrint('📖 انتهى تحميل الملاحظات');
+      // بعد تحميل كل الملاحظات، أعد حساب أزمنة التحديث لكل مجلد بناءً على أحدث ملاحظة به
+      _recomputeAllFolderTimestamps();
     } catch (e) {
       debugPrint('❌ فشل في تحميل الملاحظات: $e');
+    }
+  }
+
+  void _recomputeAllFolderTimestamps() {
+    for (final page in _pages) {
+      for (int i = 0; i < page.folders.length; i++) {
+        final folder = page.folders[i];
+        if (folder.notes.isNotEmpty) {
+          // احسب أحدث createdAt بين ملاحظات المجلد
+          DateTime latest = folder.notes.first.createdAt;
+          for (final n in folder.notes) {
+            if (n.createdAt.isAfter(latest)) latest = n.createdAt;
+          }
+          // استبدال المجلد بواحد جديد يحمل updatedAt الأحدث
+          page.folders[i] = FolderModel(
+            id: folder.id,
+            title: folder.title,
+            notes: folder.notes,
+            updatedAt: latest,
+          );
+        }
+      }
     }
   }
 
@@ -262,6 +297,36 @@ class NotesRepository {
   }
 
   PageModel? getPage(String id) => _pages.firstWhere((p) => p.id == id, orElse: () => _pages.first);
+
+  // إضافة صفحة جديدة
+  String addNewPage(String title) {
+    final id = Uuid().v4();
+    final newPage = PageModel(
+      id: id,
+      title: title,
+      folders: [],
+    );
+    _pages.add(newPage);
+    debugPrint('📄 تم إضافة صفحة جديدة: $title (ID: $id)');
+    return id;
+  }
+
+  // إضافة مجلد جديد إلى صفحة
+  String addNewFolder(String pageId, String folderTitle) {
+    final folderId = Uuid().v4();
+    final page = _pages.firstWhere((p) => p.id == pageId);
+    
+    final newFolder = FolderModel(
+      id: folderId,
+      title: folderTitle,
+      notes: [],
+      updatedAt: DateTime.now(),
+    );
+    
+    page.folders.add(newFolder);
+    debugPrint('📁 تم إضافة مجلد جديد: $folderTitle في الصفحة: ${page.title} (ID: $folderId)');
+    return folderId;
+  }
 
   FolderModel? getFolder(String pageId, String folderId) {
     final p = getPage(pageId);

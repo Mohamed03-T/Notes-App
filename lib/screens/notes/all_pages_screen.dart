@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../repositories/notes_repository.dart';
+import 'add_page_screen.dart';
 
-class AllPagesScreen extends StatelessWidget {
+class AllPagesScreen extends StatefulWidget {
   const AllPagesScreen({Key? key}) : super(key: key);
+
+  @override
+  _AllPagesScreenState createState() => _AllPagesScreenState();
+}
+
+class _AllPagesScreenState extends State<AllPagesScreen> {
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +21,23 @@ class AllPagesScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('جميع الصفحات'),
         backgroundColor: Colors.blue.shade50,
+        actions: [
+          IconButton(
+            onPressed: () async {
+              final result = await Navigator.push<String>(
+                context,
+                MaterialPageRoute(builder: (context) => const AddPageScreen()),
+              );
+              
+              if (result != null) {
+                // تحديث الشاشة بعد إضافة صفحة جديدة
+                setState(() {});
+              }
+            },
+            icon: const Icon(Icons.add),
+            tooltip: 'إضافة صفحة جديدة',
+          ),
+        ],
       ),
       body: Container(
         color: Colors.grey.shade50,
@@ -117,11 +141,16 @@ class AllPagesScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: إضافة صفحة جديدة
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('سيتم إضافة هذه الميزة قريباً')),
+        onPressed: () async {
+          final result = await Navigator.push<String>(
+            context,
+            MaterialPageRoute(builder: (context) => const AddPageScreen()),
           );
+          
+          if (result != null) {
+            // تحديث الشاشة بعد إضافة صفحة جديدة
+            setState(() {});
+          }
         },
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),
