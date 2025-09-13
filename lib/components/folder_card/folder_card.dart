@@ -72,6 +72,9 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
       _isPressed = false;
     });
     _animationController.reverse();
+    if (widget.onTap != null) {
+      widget.onTap!();
+    }
   }
 
   void _onTapCancel() {
@@ -101,7 +104,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: AppTheme.getCardColor(context),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: AppTheme.getCardShadow(context),
                 border: Border.all(
                   color: AppTheme.getBorderColor(context).withOpacity(0.1),
@@ -125,8 +128,8 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        topRight: Radius.circular(20),
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
                       ),
                     ),
                     child: Row(
@@ -134,20 +137,20 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             Icons.folder_rounded,
                             color: Theme.of(context).colorScheme.primary,
-                            size: 20,
+                            size: 24,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             widget.folder.title,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppTheme.getTextPrimary(context),
                             ),
@@ -155,14 +158,14 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
                                 color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                                blurRadius: 6,
+                                blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
                             ],
@@ -172,7 +175,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onPrimary,
                               fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 14,
                             ),
                           ),
                         ),
@@ -196,14 +199,14 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                     decoration: BoxDecoration(
                       color: AppTheme.getDividerColor(context).withOpacity(0.3),
                       borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(16),
+                        bottomRight: Radius.circular(16),
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.access_time,
+                          Icons.access_time_rounded,
                           size: 14,
                           color: AppTheme.getTextSecondary(context),
                         ),
@@ -213,6 +216,12 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppTheme.getTextSecondary(context),
                           ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 12,
+                          color: AppTheme.getTextSecondary(context),
                         ),
                       ],
                     ),
@@ -239,16 +248,20 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
           
           return Container(
             margin: EdgeInsets.only(bottom: isLast ? 0 : 8),
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.getDividerColor(context).withOpacity(0.2),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  margin: const EdgeInsets.only(top: 6),
+                  margin: const EdgeInsets.only(top: 2),
                   width: 6,
                   height: 6,
                   decoration: BoxDecoration(
@@ -256,15 +269,15 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     note.content,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppTheme.getTextPrimary(context),
                       height: 1.4,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -277,15 +290,15 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 'و ${widget.folder.notes.length - 3} ملاحظات أخرى...',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: Theme.of(context).colorScheme.secondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -303,26 +316,26 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.getDividerColor(context).withOpacity(0.3),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.note_add_outlined,
               size: 32,
-              color: AppTheme.getTextSecondary(context),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 12),
           Text(
             'لا توجد ملاحظات',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: AppTheme.getTextSecondary(context),
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'اضغط لإضافة ملاحظة',
+            'اضغط لإضافة ملاحظة جديدة',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppTheme.getTextSecondary(context),
             ),
