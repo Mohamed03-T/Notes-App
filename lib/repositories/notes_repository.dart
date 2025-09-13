@@ -82,7 +82,28 @@ class NotesRepository {
           
           debugPrint('📝 تحميل ملاحظة: ${note.content} إلى المجلد: $folderId');
           
-          final folder = getFolder(pageId, folderId);
+          var folder = getFolder(pageId, folderId);
+          
+          // إذا لم يجد المجلد أو الصفحة، حاول إنشاء صفحة ومجلد افتراضيين
+          if (folder == null) {
+            debugPrint('⚠️ المجلد غير موجود، سيتم إنشاء مجلد افتراضي');
+            // إنشاء صفحة افتراضية إذا لم تكن موجودة
+            if (_pages.isEmpty) {
+              final defaultPageId = addNewPage('صفحة افتراضية');
+              final defaultFolderId = addNewFolder(defaultPageId, 'الملاحظات');
+              folder = getFolder(defaultPageId, defaultFolderId);
+            } else {
+              // إنشاء مجلد افتراضي في أول صفحة
+              final firstPage = _pages.first;
+              if (firstPage.folders.isEmpty) {
+                final defaultFolderId = addNewFolder(firstPage.id, 'الملاحظات');
+                folder = getFolder(firstPage.id, defaultFolderId);
+              } else {
+                folder = firstPage.folders.first;
+              }
+            }
+          }
+          
           if (folder != null && !folder.notes.any((n) => n.id == note.id)) {
             folder.notes.add(note);
             debugPrint('✅ تم إضافة الملاحظة للمجلد ${folder.title}');
@@ -160,7 +181,17 @@ class NotesRepository {
     return latest;
   }
 
-  PageModel? getPage(String id) => _pages.firstWhere((p) => p.id == id, orElse: () => _pages.first);
+  PageModel? getPage(String id) {
+    try {
+      return _pages.firstWhere((p) => p.id == id);
+    } catch (e) {
+      // إذا لم يجد الصفحة المطلوبة، حاول إرجاع أول صفحة
+      if (_pages.isNotEmpty) {
+        return _pages.first;
+      }
+      return null;
+    }
+  }
 
   // إضافة صفحة جديدة
   String addNewPage(String title) {
@@ -195,7 +226,15 @@ class NotesRepository {
   FolderModel? getFolder(String pageId, String folderId) {
     final p = getPage(pageId);
     if (p == null) return null;
-    return p.folders.firstWhere((f) => f.id == folderId, orElse: () => p.folders.first);
+    try {
+      return p.folders.firstWhere((f) => f.id == folderId);
+    } catch (e) {
+      // إذا لم يجد المجلد المطلوب، حاول إرجاع أول مجلد
+      if (p.folders.isNotEmpty) {
+        return p.folders.first;
+      }
+      return null;
+    }
   }
 
   Future<bool> saveNoteSimple(String content, {String type = 'simple'}) async {

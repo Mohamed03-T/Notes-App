@@ -113,6 +113,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Header with folder name and count
                   Container(
@@ -183,13 +184,12 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                     ),
                   ),
                   
-                  // Preview content area
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      child: hasNotes ? _buildNotesPreview() : _buildEmptyState(),
-                    ),
+                  // Preview content area  
+                  Container(
+                    width: double.infinity,
+                    height: 45,
+                    padding: const EdgeInsets.all(4),
+                    child: hasNotes ? _buildNotesPreview() : _buildEmptyState(),
                   ),
                   
                   // Footer with timestamp
@@ -236,10 +236,11 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
   }
 
   Widget _buildNotesPreview() {
-    final notesToShow = widget.folder.notes.take(3).toList();
+    final notesToShow = widget.folder.notes.take(2).toList();
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         ...notesToShow.asMap().entries.map((entry) {
           final index = entry.key;
@@ -247,11 +248,11 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
           final isLast = index == notesToShow.length - 1;
           
           return Container(
-            margin: EdgeInsets.only(bottom: isLast ? 0 : 8),
-            padding: const EdgeInsets.all(12),
+            margin: EdgeInsets.only(bottom: isLast ? 0 : 1),
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(4),
               border: Border.all(
                 color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                 width: 1,
@@ -261,23 +262,24 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  margin: const EdgeInsets.only(top: 2),
-                  width: 6,
-                  height: 6,
+                  margin: const EdgeInsets.only(top: 1),
+                  width: 3,
+                  height: 3,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     note.content,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppTheme.getTextPrimary(context),
-                      height: 1.4,
+                      height: 1.2,
+                      fontSize: 11,
                     ),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -286,24 +288,26 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
           );
         }).toList(),
         
-        if (widget.folder.notes.length > 3)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'و ${widget.folder.notes.length - 3} ملاحظات أخرى...',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
+        // إزالة عنصر "المزيد" لتجنب overflow
+        // if (widget.folder.notes.length > 2)
+        //   Padding(
+        //     padding: const EdgeInsets.only(top: 6),
+        //     child: Container(
+        //       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        //       decoration: BoxDecoration(
+        //         color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+        //         borderRadius: BorderRadius.circular(12),
+        //       ),
+        //       child: Text(
+        //         'و ${widget.folder.notes.length - 2} أخرى...',
+        //         style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        //           color: Theme.of(context).colorScheme.secondary,
+        //           fontWeight: FontWeight.w500,
+        //           fontSize: 9,
+        //         ),
+        //       ),
+        //     ),
+        //   ),
       ],
     );
   }
@@ -312,32 +316,19 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.note_add_outlined,
-              size: 32,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
-            ),
+          Icon(
+            Icons.note_add_outlined,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 2),
           Text(
             'لا توجد ملاحظات',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppTheme.getTextSecondary(context),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'اضغط لإضافة ملاحظة جديدة',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppTheme.getTextSecondary(context),
+              fontSize: 10,
             ),
           ),
         ],
