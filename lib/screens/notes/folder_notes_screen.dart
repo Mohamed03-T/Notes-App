@@ -3,6 +3,8 @@ import '../../repositories/notes_repository.dart';
 import '../../components/note_card/note_card.dart';
 import '../../components/composer_bar/composer_bar.dart';
 
+/// شاشة عرض الملاحظات داخل مجلد معين
+/// زر الرجوع يخرج من الشاشة بضغطة واحدة
 class FolderNotesScreen extends StatefulWidget {
   final String pageId;
   final String folderId;
@@ -31,13 +33,15 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
     // حفظ الملاحظة في المجلد المحدد
     debugPrint('💾 حفظ ملاحظة في المجلد: ${widget.folderId}');
     debugPrint('📝 النص: $text');
-    
+
     final success = await repo.saveNoteToFolder(text, widget.pageId, widget.folderId);
     
     if (success) {
       setState(() {
         // تحديث الواجهة
       });
+      
+      debugPrint('✅ تم حفظ الملاحظة بنجاح');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -56,8 +60,12 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
   @override
   Widget build(BuildContext context) {
     final folder = repo.getFolder(widget.pageId, widget.folderId)!;
+    
     return Scaffold(
-      appBar: AppBar(title: Text(folder.title)),
+      appBar: AppBar(
+        title: Text(folder.title),
+        automaticallyImplyLeading: true,
+      ),
       body: Column(
         children: [
           Expanded(
@@ -65,7 +73,9 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
               children: folder.notes.map((n) => NoteCard(note: n)).toList(),
             ),
           ),
-          ComposerBar(onSend: _saveNote),
+          ComposerBar(
+            onSend: _saveNote,
+          ),
         ],
       ),
     );

@@ -5,16 +5,21 @@ import '../../repositories/notes_repository.dart';
 class ComposerBar extends StatefulWidget {
   final void Function(String)? onSend;
   final List<dynamic>? attachments;
+  // دالة callback تستدعى عند تغيير حالة النص (موجود/غير موجود)
+  final void Function(bool)? onTextChanged;
 
-  const ComposerBar({Key? key, this.onSend, this.attachments}) : super(key: key);
+  const ComposerBar({Key? key, this.onSend, this.attachments, this.onTextChanged}) : super(key: key);
 
   @override
-  _ComposerBarState createState() => _ComposerBarState();
+  ComposerBarState createState() => ComposerBarState();
 }
 
-class _ComposerBarState extends State<ComposerBar> {
+class ComposerBarState extends State<ComposerBar> {
   late TextEditingController _controller;
   bool _hasText = false;
+
+  /// Public getter so parent widgets can query current text state synchronously.
+  bool get hasText => _hasText;
 
   @override
   void initState() {
@@ -27,6 +32,11 @@ class _ComposerBarState extends State<ComposerBar> {
       if (hasText != _hasText) {
         setState(() => _hasText = hasText);
         print('🔄 تم تحديث الحالة: _hasText = $_hasText');
+        
+        // استدعاء callback عند تغيير حالة النص
+        if (widget.onTextChanged != null) {
+          widget.onTextChanged!(hasText);
+        }
       }
     });
   }
@@ -38,6 +48,18 @@ class _ComposerBarState extends State<ComposerBar> {
   }
 
   bool get _hasAttachments => (widget.attachments?.isNotEmpty ?? false);
+
+  /// دالة لمسح النص من الخارج (تستدعى من الشاشة الأب عند الضغط على زر الرجوع)
+  void clearText() {
+    _controller.clear();
+    setState(() {
+      _hasText = false;
+    });
+    // إبلاغ الشاشة الأب أن النص تم مسحه
+    if (widget.onTextChanged != null) {
+      widget.onTextChanged!(false);
+    }
+  }
 
   Future<void> _handlePrimaryAction() async {
     print('🔥 زر الإرسال تم الضغط عليه!');
@@ -57,11 +79,19 @@ class _ComposerBarState extends State<ComposerBar> {
       // استدعاء callback function إذا كانت متوفرة
       if (widget.onSend != null) {
         print('📞 استدعاء onSend callback...');
-        widget.onSend!(content);
+        
+        // مسح النص وإبلاغ الـ parent فوراً قبل استدعاء onSend
         _controller.clear();
         setState(() {
           _hasText = false;
         });
+        // إبلاغ الـ parent أن النص تم مسحه
+        if (widget.onTextChanged != null) {
+          widget.onTextChanged!(false);
+        }
+        
+        // الآن استدعاء onSend
+        widget.onSend!(content);
       } else {
         // في حالة عدم توفر callback، استخدم الطريقة القديمة
         try {
@@ -76,6 +106,10 @@ class _ComposerBarState extends State<ComposerBar> {
             setState(() {
               _hasText = false;
             });
+            // إبلاغ الـ parent أن النص تم مسحه
+            if (widget.onTextChanged != null) {
+              widget.onTextChanged!(false);
+            }
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('تم حفظ الملاحظة بنجاح! ✅'))
