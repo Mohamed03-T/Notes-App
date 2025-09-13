@@ -6,6 +6,7 @@ import 'folder_notes_screen.dart';
 import 'all_pages_screen.dart';
 import 'add_folder_screen.dart';
 import 'add_page_screen.dart';
+import '../settings/settings_screen.dart';
 
 class NotesHome extends StatefulWidget {
   const NotesHome({Key? key}) : super(key: key);
@@ -62,6 +63,13 @@ class _NotesHomeState extends State<NotesHome> {
     }
   }
 
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
   final allPages = repo.getPages(); // ترتيب الصفحات الأصلي
@@ -76,10 +84,93 @@ class _NotesHomeState extends State<NotesHome> {
     
     final current = allPages.isNotEmpty ? allPages[currentPageIndex] : null;
 
-    if (current == null) {
+    if (current == null || allPages.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('لا توجد صفحات')),
-        body: const Center(child: Text('لا توجد صفحات متاحة')),
+        appBar: AppBar(
+          title: const Text('مرحباً بك في تطبيق الملاحظات'),
+          backgroundColor: Colors.blue.shade50,
+          actions: [
+            IconButton(
+              onPressed: () async {
+                final result = await Navigator.push<String>(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddPageScreen()),
+                );
+                
+                if (result != null) {
+                  // تحديث الشاشة وانتقل إلى الصفحة الجديدة
+                  final allPages = repo.getPages();
+                  final newPageIndex = allPages.indexWhere((page) => page.id == result);
+                  if (newPageIndex != -1) {
+                    setState(() {
+                      currentPageIndex = newPageIndex;
+                    });
+                  }
+                }
+              },
+              icon: const Icon(Icons.add, color: Colors.blue),
+              tooltip: 'إضافة صفحة جديدة',
+            ),
+          ],
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.pages,
+                size: 80,
+                color: Colors.blue.shade300,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'لا توجد صفحات بعد',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'ابدأ بإنشاء صفحتك الأولى',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push<String>(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AddPageScreen()),
+                  );
+                  
+                  if (result != null) {
+                    final allPages = repo.getPages();
+                    final newPageIndex = allPages.indexWhere((page) => page.id == result);
+                    if (newPageIndex != -1) {
+                      setState(() {
+                        currentPageIndex = newPageIndex;
+                      });
+                    }
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('إنشاء صفحة جديدة'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -101,6 +192,7 @@ class _NotesHomeState extends State<NotesHome> {
         }, // التنقل العادي بدون تغيير ترتيب
         onMorePressed: _openAllPagesScreen,
         onAddPagePressed: _addNewPage, // إضافة دالة إضافة الصفحة
+        onSettingsPressed: _openSettings, // إضافة دالة الإعدادات
       ),
       body: RefreshIndicator(
         onRefresh: () async {

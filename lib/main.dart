@@ -12,10 +12,20 @@ class NotesApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Notes',
-      theme: AppTheme.lightTheme,
-      home: const NotesHome(),
+    return AnimatedBuilder(
+      animation: ThemeManager.instance,
+      builder: (context, child) {
+        return MaterialApp(
+          title: 'Notes',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeManager.instance.isDarkMode 
+              ? ThemeMode.dark 
+              : ThemeMode.light,
+          home: const NotesHome(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

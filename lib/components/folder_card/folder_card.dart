@@ -1,11 +1,43 @@
 import 'package:flutter/material.dart';
 import '../../models/folder_model.dart';
+import '../../core/theme/app_theme.dart';
 
-class FolderCard extends StatelessWidget {
+class FolderCard extends StatefulWidget {
   final FolderModel folder;
   final VoidCallback? onTap;
 
   const FolderCard({Key? key, required this.folder, this.onTap}) : super(key: key);
+
+  @override
+  State<FolderCard> createState() => _FolderCardState();
+}
+
+class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   String _getTimeAgo(DateTime? updatedAt) {
     if (updatedAt == null) return 'لم يتم التحديث';
@@ -28,117 +60,174 @@ class FolderCard extends StatelessWidget {
     }
   }
 
+  void _onTapDown(TapDownDetails details) {
+    setState(() {
+      _isPressed = true;
+    });
+    _animationController.forward();
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    setState(() {
+      _isPressed = false;
+    });
+    _animationController.reverse();
+  }
+
+  void _onTapCancel() {
+    setState(() {
+      _isPressed = false;
+    });
+    _animationController.reverse();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final notesCount = folder.notes.length;
+    final notesCount = widget.folder.notes.length;
     final hasNotes = notesCount > 0;
-    final timeAgo = _getTimeAgo(folder.updatedAt);
+    final timeAgo = _getTimeAgo(widget.folder.updatedAt);
     
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with folder name and count
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
+    return AnimatedBuilder(
+      animation: _scaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: GestureDetector(
+            onTap: widget.onTap,
+            onTapDown: _onTapDown,
+            onTapUp: _onTapUp,
+            onTapCancel: _onTapCancel,
+            child: Container(
+              margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+                color: AppTheme.getCardColor(context),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: AppTheme.getCardShadow(context),
+                border: Border.all(
+                  color: AppTheme.getBorderColor(context).withOpacity(0.1),
+                  width: 1,
                 ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.folder,
-                    color: Colors.blue.shade700,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      folder.title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                  // Header with folder name and count
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade700,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '$notesCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.folder_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            widget.folder.title,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.getTextPrimary(context),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            '$notesCount',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Preview content area
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      child: hasNotes ? _buildNotesPreview() : _buildEmptyState(),
+                    ),
+                  ),
+                  
+                  // Footer with timestamp
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.getDividerColor(context).withOpacity(0.3),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: AppTheme.getTextSecondary(context),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          timeAgo,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.getTextSecondary(context),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            
-            // Preview content area
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                child: hasNotes ? _buildNotesPreview() : _buildEmptyState(),
-              ),
-            ),
-            
-            // Footer with timestamp
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-              ),
-              child: Text(
-                timeAgo,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildNotesPreview() {
-    final notesToShow = folder.notes.take(3).toList();
+    final notesToShow = widget.folder.notes.take(3).toList();
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,27 +238,31 @@ class FolderCard extends StatelessWidget {
           final isLast = index == notesToShow.length - 1;
           
           return Container(
-            margin: EdgeInsets.only(bottom: isLast ? 0 : 6),
+            margin: EdgeInsets.only(bottom: isLast ? 0 : 8),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.getDividerColor(context).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  width: 4,
-                  height: 4,
+                  margin: const EdgeInsets.only(top: 6),
+                  width: 6,
+                  height: 6,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     note.content,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade700,
-                      height: 1.3,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.getTextPrimary(context),
+                      height: 1.4,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -180,15 +273,21 @@ class FolderCard extends StatelessWidget {
           );
         }).toList(),
         
-        if (folder.notes.length > 3)
+        if (widget.folder.notes.length > 3)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'و ${folder.notes.length - 3} ملاحظات أخرى...',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.blue.shade600,
-                fontStyle: FontStyle.italic,
+            padding: const EdgeInsets.only(top: 12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'و ${widget.folder.notes.length - 3} ملاحظات أخرى...',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -201,24 +300,31 @@ class FolderCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.note_add_outlined,
-            size: 32,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'لا توجد ملاحظات',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade500,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.getDividerColor(context).withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.note_add_outlined,
+              size: 32,
+              color: AppTheme.getTextSecondary(context),
             ),
           ),
+          const SizedBox(height: 12),
+          Text(
+            'لا توجد ملاحظات',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.getTextSecondary(context),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(
             'اضغط لإضافة ملاحظة',
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade400,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.getTextSecondary(context),
             ),
           ),
         ],

@@ -19,6 +19,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<int>? originalIndices; // mapping from displayed pages to original indices
   final VoidCallback? onMorePressed;
   final VoidCallback? onAddPagePressed; // زر إضافة صفحة جديدة
+  final VoidCallback? onSettingsPressed; // زر الإعدادات
   final int? totalPagesCount; // العدد الكلي للصفحات
 
   const TopBar({
@@ -29,6 +30,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.originalIndices,
     this.onMorePressed,
     this.onAddPagePressed,
+    this.onSettingsPressed,
     this.totalPagesCount,
   }) : super(key: key);
 
@@ -39,15 +41,15 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     // حساب المساحة المتاحة للصفحات
     const double buttonSpacing = 8.0;
     const double sideMargin = 16.0;
-    const double addButtonWidth = 60.0; // عرض زر إضافة الصفحة
-    const double moreButtonWidth = 50.0; // عرض زر المزيد
+    const double menuButtonWidth = 40.0; // عرض زر القائمة المنسدلة
+    const double moreButtonWidth = 40.0; // عرض زر المزيد الجديد
     
     // المساحة المتاحة للصفحات
     double availableWidth = screenWidth - (sideMargin * 2);
     
     // خصم مساحة الأزرار الإضافية
-    if (onAddPagePressed != null) {
-      availableWidth -= (addButtonWidth + buttonSpacing);
+    if (onAddPagePressed != null || onSettingsPressed != null) {
+      availableWidth -= (menuButtonWidth + buttonSpacing);
     }
     
     final actualTotalPagesCount = totalPagesCount ?? pages.length;
@@ -110,10 +112,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
             
-            // زر إضافة صفحة جديدة
-            if (onAddPagePressed != null) ...[
+            // زر القائمة المنسدلة
+            if (onAddPagePressed != null || onSettingsPressed != null) ...[
               const SizedBox(width: buttonSpacing),
-              _buildAddPageButton(),
+              _buildMenuButton(context),
             ],
             
             // زر "المزيد" إذا كان هناك صفحات إضافية
@@ -295,41 +297,97 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildAddPageButton() {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onAddPagePressed,
-        borderRadius: BorderRadius.circular(20),
-        splashColor: Colors.green.withOpacity(0.1),
-        highlightColor: Colors.green.withOpacity(0.05),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.green.shade400,
-                Colors.green.shade500,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+  Widget _buildMenuButton(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (String value) {
+        switch (value) {
+          case 'add_page':
+            onAddPagePressed?.call();
+            break;
+          case 'settings':
+            onSettingsPressed?.call();
+            break;
+          case 'language':
+            // TODO: تنفيذ اختيار اللغة
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('سيتم إضافة اختيار اللغة قريباً')),
+            );
+            break;
+          case 'notifications':
+            // TODO: تنفيذ إعدادات الإشعارات
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('سيتم إضافة إعدادات الإشعارات قريباً')),
+            );
+            break;
+        }
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        if (onAddPagePressed != null)
+          const PopupMenuItem<String>(
+            value: 'add_page',
+            child: ListTile(
+              leading: Icon(Icons.add, color: Colors.green),
+              title: Text('إضافة صفحة جديدة'),
+              contentPadding: EdgeInsets.zero,
             ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.green.shade200.withOpacity(0.4),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-                spreadRadius: 0,
-              ),
-            ],
           ),
-          child: Icon(
-            Icons.add,
-            size: 20,
-            color: Colors.white,
+        if (onSettingsPressed != null)
+          const PopupMenuItem<String>(
+            value: 'settings',
+            child: ListTile(
+              leading: Icon(Icons.settings, color: Colors.grey),
+              title: Text('الإعدادات'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        const PopupMenuItem<String>(
+          value: 'language',
+          child: ListTile(
+            leading: Icon(Icons.language, color: Colors.blue),
+            title: Text('اللغة'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'notifications',
+          child: ListTile(
+            leading: Icon(Icons.notifications, color: Colors.orange),
+            title: Text('الإشعارات'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.grey.shade400,
+                  Colors.grey.shade500,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.shade300.withOpacity(0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.more_vert,
+              size: 20,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -341,12 +399,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onMorePressed,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         splashColor: Colors.orange.withOpacity(0.1),
         highlightColor: Colors.orange.withOpacity(0.05),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -356,7 +415,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
                 color: Colors.orange.shade200.withOpacity(0.4),
@@ -366,25 +425,16 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ],
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.apps_rounded,
-                size: 16,
+          child: Center(
+            child: Text(
+              '$hiddenCount',
+              style: TextStyle(
                 color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                letterSpacing: 0.2,
               ),
-              const SizedBox(width: 4),
-              Text(
-                '+$hiddenCount',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
