@@ -62,14 +62,14 @@ class AppTheme {
   static const Color lightBorder = Color(0xFFE5E7EB);
   static const Color lightDivider = Color(0xFFF3F4F6);
 
-  // ألوان المظهر الداكن
-  static const Color darkBackground = Color(0xFF111827);
-  static const Color darkSurface = Color(0xFF1F2937);
-  static const Color darkCardBackground = Color(0xFF374151);
-  static const Color darkTextPrimary = Color(0xFFF9FAFB);
-  static const Color darkTextSecondary = Color(0xFFD1D5DB);
-  static const Color darkBorder = Color(0xFF4B5563);
-  static const Color darkDivider = Color(0xFF374151);
+  // ألوان المظهر الداكن (خلفيات سوداء نقية ونصوص بيضاء ورمادية)
+  static const Color darkBackground = Color(0xFF000000);
+  static const Color darkSurface = Color(0xFF000000);
+  static const Color darkCardBackground = Color(0xFF000000);
+  static const Color darkTextPrimary = Color(0xFFFFFFFF);
+  static const Color darkTextSecondary = Color(0xFFB0B0B0);
+  static const Color darkBorder = Color(0xFF202020);
+  static const Color darkDivider = Color(0xFF202020);
 
   // ============= المظهر الفاتح =============
   static ThemeData lightTheme = ThemeData(
@@ -217,13 +217,13 @@ class AppTheme {
     
     // نظام الألوان
     colorScheme: const ColorScheme.dark(
-      primary: Color(0xFF60A5FA),
-      secondary: Color(0xFF34D399),
-      tertiary: Color(0xFFFBBF24),
+      primary: primaryBlue,
+      secondary: primaryGreen,
+      tertiary: primaryOrange,
       surface: darkSurface,
       background: darkBackground,
-      onPrimary: darkBackground,
-      onSecondary: darkBackground,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
       onSurface: darkTextPrimary,
       onBackground: darkTextPrimary,
     ),
@@ -257,10 +257,10 @@ class AppTheme {
     // تصميم الأزرار
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF60A5FA),
-        foregroundColor: darkBackground,
+        backgroundColor: primaryBlue,
+        foregroundColor: Colors.white,
         elevation: 4,
-        shadowColor: const Color(0xFF60A5FA).withOpacity(0.3),
+        shadowColor: primaryBlue.withOpacity(0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),

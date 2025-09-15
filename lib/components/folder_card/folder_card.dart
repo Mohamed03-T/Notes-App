@@ -187,7 +187,6 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                   // Preview content area  
                   Container(
                     width: double.infinity,
-                    height: 45,
                     padding: const EdgeInsets.all(4),
                     child: hasNotes ? _buildNotesPreview() : _buildEmptyState(),
                   ),
@@ -236,7 +235,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
   }
 
   Widget _buildNotesPreview() {
-    final notesToShow = widget.folder.notes.take(2).toList();
+    final notesToShow = widget.folder.notes.take(3).toList();
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +272,8 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    note.content,
+                    note.content.split(' ').take(3).join(' ')
+                      + (note.content.split(' ').length > 3 ? '...' : ''),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppTheme.getTextPrimary(context),
                       height: 1.2,

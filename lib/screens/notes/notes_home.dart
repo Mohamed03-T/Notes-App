@@ -6,7 +6,7 @@ import 'folder_notes_screen.dart';
 import 'all_pages_screen.dart';
 import 'add_folder_screen.dart';
 import 'add_page_screen.dart';
-// import '../settings/settings_screen.dart';
+import '../settings/settings_screen.dart';
 
 class NotesHome extends StatefulWidget {
   const NotesHome({Key? key}) : super(key: key);
@@ -64,15 +64,10 @@ class _NotesHomeState extends State<NotesHome> {
   }
 
   void _openSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('شاشة الإعدادات قيد التطوير...')),
-    );
-    /*
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SettingsScreen()),
     );
-    */
   }
 
   @override
