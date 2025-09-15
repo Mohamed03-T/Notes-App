@@ -64,7 +64,13 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(folder.title),
-        automaticallyImplyLeading: true,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+        ),
       ),
       body: Column(
         children: [
