@@ -226,7 +226,10 @@ class _NotesHomeState extends State<NotesHome> {
                 },
                 onDelete: () {
                   repo.deleteFolder(current.id, f.id);
-                  setState(() {});
+                  setState(() {
+                    final page = repo.getPage(current.id);
+                    page?.folders.removeWhere((folder) => folder.id == f.id);
+                  });
                 },
               ))
               .toList(),

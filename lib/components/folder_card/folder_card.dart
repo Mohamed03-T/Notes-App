@@ -103,13 +103,88 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
             : '📌 تم إلغاء تثبيت المجلد: ${widget.folder.id}');
         break;
       case 'rename':
-        // TODO: implement rename dialog
+        // Rename folder
+        final newName = await showDialog<String>(
+          context: context,
+          builder: (ctx) {
+            final controller = TextEditingController(text: widget.folder.title);
+            return AlertDialog(
+              title: const Text('تغيير اسم المجلد'),
+              content: TextField(
+                controller: controller,
+                decoration: const InputDecoration(hintText: 'ادخل الاسم الجديد'),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+                TextButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('تأكيد')),
+              ],
+            );
+          },
+        );
+        if (newName != null && newName.isNotEmpty) {
+          setState(() { widget.folder.title = newName; });
+        }
         break;
       case 'color':
-        // TODO: implement background color picker
+        // Pick from 10 predefined colors
+        final colors = <Color>[
+          Colors.red,
+          Colors.orange,
+          Colors.yellow,
+          Colors.green,
+          Colors.blue,
+          Colors.indigo,
+          Colors.purple,
+          Colors.pink,
+          Colors.teal,
+          Colors.brown,
+        ];
+        final chosen = await showDialog<Color>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('اختر لون الخلفية'),
+            content: SingleChildScrollView(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: colors.map((c) => GestureDetector(
+                  onTap: () => Navigator.pop(ctx, c),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: c,
+                      shape: BoxShape.circle,
+                      border: widget.folder.backgroundColor == c
+                          ? Border.all(color: Colors.white, width: 2)
+                          : null,
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ),
+          ),
+        );
+        if (chosen != null) {
+          setState(() { widget.folder.backgroundColor = chosen; });
+        }
         break;
       case 'delete':
-        // TODO: implement delete confirmation
+        // Confirm deletion
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('تأكيد الحذف'),
+            content: const Text('هل تريد حذف هذا المجلد؟ لا يمكن التراجع.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
+            ],
+          ),
+        );
+        if (confirm == true && widget.onDelete != null) {
+          widget.onDelete!();
+        }
         break;
       default:
         break;
@@ -139,7 +214,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.getCardColor(context),
+                color: widget.folder.backgroundColor ?? AppTheme.getCardColor(context),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: AppTheme.getCardShadow(context),
                 border: Border.all(
@@ -151,19 +226,12 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header with folder name and count
+                  // Header with folder name and count (uses folder's backgroundColor)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppTheme.primaryPurple.withOpacity(0.15),
-                          AppTheme.primaryPurple.withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: widget.folder.backgroundColor ?? AppTheme.getCardColor(context),
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
@@ -171,19 +239,6 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.folder_rounded,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             widget.folder.title,
@@ -320,7 +375,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                       + (note.content.split(' ').length > 3 ? '...' : ''),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppTheme.getTextPrimary(context),
-                      height: 1.2,
+                     
                       fontSize: 11,
                     ),
                     maxLines: 1,
