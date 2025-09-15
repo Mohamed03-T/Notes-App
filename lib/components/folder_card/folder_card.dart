@@ -5,17 +5,20 @@ import '../../core/theme/app_theme.dart';
 class FolderCard extends StatefulWidget {
   final FolderModel folder;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
-  const FolderCard({Key? key, required this.folder, this.onTap}) : super(key: key);
+  const FolderCard({Key? key, required this.folder, this.onTap, this.onDelete}) : super(key: key);
 
   @override
   State<FolderCard> createState() => _FolderCardState();
 }
 
 class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateMixin {
+  // store the position where the user long-pressed
+  Offset _tapPosition = Offset.zero;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-  bool _isPressed = false;
+  // Removed unused _isPressed flag
 
   @override
   void initState() {
@@ -61,16 +64,12 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
   }
 
   void _onTapDown(TapDownDetails details) {
-    setState(() {
-      _isPressed = true;
-    });
+    // Start press animation
     _animationController.forward();
   }
 
   void _onTapUp(TapUpDetails details) {
-    setState(() {
-      _isPressed = false;
-    });
+    // Reverse press animation
     _animationController.reverse();
     if (widget.onTap != null) {
       widget.onTap!();
@@ -78,10 +77,43 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
   }
 
   void _onTapCancel() {
-    setState(() {
-      _isPressed = false;
-    });
+    // Reverse press animation when tap is cancelled
     _animationController.reverse();
+  }
+  
+  // Show a popup menu at tap position
+  Future<void> _showContextMenu(Offset position) async {
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
+      items: [
+        PopupMenuItem(value: 'pin', child: Row(children: [const Icon(Icons.push_pin), const SizedBox(width: 8), const Text('تثبيت المجلد')])),
+        PopupMenuItem(value: 'rename', child: Row(children: [const Icon(Icons.edit), const SizedBox(width: 8), const Text('تغيير اسم المجلد')])),
+        PopupMenuItem(value: 'color', child: Row(children: [const Icon(Icons.format_paint), const SizedBox(width: 8), const Text('تغيير لون الخلفية')])),
+        PopupMenuItem(value: 'delete', child: Row(children: [const Icon(Icons.delete, color: Colors.red), const SizedBox(width: 8), const Text('حذف المجلد', style: TextStyle(color: Colors.red))])),
+      ],
+    );
+    switch (selected) {
+      case 'pin':
+        setState(() {
+          widget.folder.isPinned = !widget.folder.isPinned;
+        });
+        debugPrint(widget.folder.isPinned
+            ? '🔖 تم تثبيت المجلد: ${widget.folder.id}'
+            : '📌 تم إلغاء تثبيت المجلد: ${widget.folder.id}');
+        break;
+      case 'rename':
+        // TODO: implement rename dialog
+        break;
+      case 'color':
+        // TODO: implement background color picker
+        break;
+      case 'delete':
+        // TODO: implement delete confirmation
+        break;
+      default:
+        break;
+    }
   }
 
   @override
@@ -97,9 +129,13 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
           scale: _scaleAnimation.value,
           child: GestureDetector(
             onTap: widget.onTap,
-            onTapDown: _onTapDown,
+            onTapDown: (details) {
+              _onTapDown(details);
+              _tapPosition = details.globalPosition;
+            },
             onTapUp: _onTapUp,
             onTapCancel: _onTapCancel,
+            onLongPress: () => _showContextMenu(_tapPosition),
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -122,8 +158,8 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                          Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                          AppTheme.primaryPurple.withOpacity(0.15),
+                          AppTheme.primaryPurple.withOpacity(0.05),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -158,6 +194,14 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (widget.folder.isPinned) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.push_pin,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ],
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(

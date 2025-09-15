@@ -93,15 +93,15 @@ class AppTheme {
     scaffoldBackgroundColor: lightBackground,
 
     // تصميم AppBar
-    appBarTheme: const AppBarTheme(
-      backgroundColor: lightSurface,
-      foregroundColor: lightTextPrimary,
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.grey.shade800,
+      foregroundColor: Colors.grey.shade200,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
-        color: lightTextPrimary,
+        color: Colors.grey.shade200,
       ),
     ),
 
@@ -232,15 +232,15 @@ class AppTheme {
     scaffoldBackgroundColor: darkBackground,
 
     // تصميم AppBar
-    appBarTheme: const AppBarTheme(
-      backgroundColor: darkSurface,
-      foregroundColor: darkTextPrimary,
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.grey.shade800,
+      foregroundColor: Colors.grey.shade200,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
-        color: darkTextPrimary,
+        color: Colors.grey.shade200,
       ),
     ),
 
@@ -266,6 +266,13 @@ class AppTheme {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       ),
+    ),
+    // تصميم SnackBar في الثيم الداكن
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: Colors.grey.shade800,
+      contentTextStyle: TextStyle(color: Colors.grey.shade200),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ),
 
     // تصميم النصوص

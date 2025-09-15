@@ -21,9 +21,7 @@ class _AddPageScreenState extends State<AddPageScreen> {
   void _createPage() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال اسم الصفحة')),
-      );
+      // SnackBar for empty title removed
       return;
     }
 
@@ -36,16 +34,12 @@ class _AddPageScreenState extends State<AddPageScreen> {
       final pageId = repo.addNewPage(title);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم إنشاء صفحة "$title" بنجاح ✅')),
-        );
+        // SnackBar for success removed
         Navigator.pop(context, pageId);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في إنشاء الصفحة: $e')),
-        );
+        // SnackBar for error removed
       }
     } finally {
       if (mounted) {
@@ -61,7 +55,8 @@ class _AddPageScreenState extends State<AddPageScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إضافة صفحة جديدة'),
-        backgroundColor: Colors.blue.shade50,
+        backgroundColor: Colors.grey.shade800,
+        foregroundColor: Colors.grey.shade200,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -71,16 +66,16 @@ class _AddPageScreenState extends State<AddPageScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Colors.grey.shade800,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: Colors.grey.shade700),
               ),
               child: Column(
                 children: [
                   Icon(
                     Icons.pages,
                     size: 48,
-                    color: Colors.blue.shade600,
+                    color: Colors.grey.shade200,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -88,7 +83,7 @@ class _AddPageScreenState extends State<AddPageScreen> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
+                      color: Colors.grey.shade100,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -96,7 +91,7 @@ class _AddPageScreenState extends State<AddPageScreen> {
                     'أضف صفحة جديدة لتنظيم ملاحظاتك بشكل أفضل',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.blue.shade600,
+                      color: Colors.grey.shade300,
                     ),
                     textAlign: TextAlign.center,
                   ),

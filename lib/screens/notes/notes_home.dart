@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../components/top_bar/top_bar.dart';
 import '../../repositories/notes_repository.dart';
 import '../../components/folder_card/folder_card.dart';
+import '../../models/folder_model.dart';
 import 'folder_notes_screen.dart';
 import 'all_pages_screen.dart';
 import 'add_folder_screen.dart';
@@ -88,7 +89,8 @@ class _NotesHomeState extends State<NotesHome> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('مرحباً بك في تطبيق الملاحظات'),
-          backgroundColor: Colors.blue.shade50,
+          backgroundColor: Colors.grey.shade800,
+          foregroundColor: Colors.grey.shade200,
           actions: [
             IconButton(
               onPressed: () async {
@@ -204,19 +206,29 @@ class _NotesHomeState extends State<NotesHome> {
           crossAxisCount: 2,
           padding: const EdgeInsets.all(12),
           childAspectRatio: 0.85, // تعديل النسبة لإعطاء مساحة أكبر للمعاينة
-          children: current.folders
+            children: (List<FolderModel>.from(current.folders)
+              ..sort((a, b) {
+                if (a.isPinned && !b.isPinned) return -1;
+                if (!a.isPinned && b.isPinned) return 1;
+                return 0;
+              }))
               .map((f) => FolderCard(
-                  folder: f,
-                  onTap: () async {
-                    await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => FolderNotesScreen(pageId: current.id, folderId: f.id)));
-                    
-                    // فقط إعادة تحميل البيانات، بدون تغيير الترتيب
-                    await repo.refreshData();
-                    setState(() {});
-                  }))
+                folder: f,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FolderNotesScreen(pageId: current.id, folderId: f.id),
+                    ),
+                  );
+                  await repo.refreshData();
+                  setState(() {});
+                },
+                onDelete: () {
+                  repo.deleteFolder(current.id, f.id);
+                  setState(() {});
+                },
+              ))
               .toList(),
         ),
       ),

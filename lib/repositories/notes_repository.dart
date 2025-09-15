@@ -222,6 +222,19 @@ class NotesRepository {
     debugPrint('📁 تم إضافة مجلد جديد: $folderTitle في الصفحة: ${page.title} (ID: $folderId)');
     return folderId;
   }
+  
+  
+  /// حذف مجلد من صفحة
+  void deleteFolder(String pageId, String folderId) {
+    try {
+      final page = _pages.firstWhere((p) => p.id == pageId);
+      page.folders.removeWhere((f) => f.id == folderId);
+      _hasNewChanges = true;
+      debugPrint('🗑️ تم حذف المجلد: $folderId من الصفحة: ${page.title}');
+    } catch (e) {
+      debugPrint('❌ خطأ عند حذف المجلد: $e');
+    }
+  }
 
   FolderModel? getFolder(String pageId, String folderId) {
     final p = getPage(pageId);

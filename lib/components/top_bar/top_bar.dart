@@ -69,7 +69,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     
     return AppBar(
       toolbarHeight: AppTokens.topBarHeight,
-      backgroundColor: Colors.white,
+  backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       elevation: 0,
       shadowColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
@@ -81,7 +81,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             gradient: LinearGradient(
               colors: [
                 Colors.transparent,
-                Colors.grey.shade200,
+                Theme.of(context).dividerColor,
                 Colors.transparent,
               ],
               stops: const [0.0, 0.5, 1.0],

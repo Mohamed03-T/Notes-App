@@ -25,9 +25,7 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
   void _createFolder() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال اسم المجلد')),
-      );
+      // SnackBar for empty folder name removed per request
       return;
     }
 
@@ -40,16 +38,12 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
       final folderId = repo.addNewFolder(widget.pageId, title);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم إنشاء مجلد "$title" بنجاح ✅')),
-        );
+        // SnackBar for folder creation success removed per request
         Navigator.pop(context, folderId);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في إنشاء المجلد: $e')),
-        );
+        // SnackBar for folder creation error removed per request
       }
     } finally {
       if (mounted) {

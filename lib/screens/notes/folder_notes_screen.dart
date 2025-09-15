@@ -42,18 +42,8 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
       });
       
       debugPrint('✅ تم حفظ الملاحظة بنجاح');
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حفظ الملاحظة بنجاح! ✅')),
-        );
-      }
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل في حفظ الملاحظة ❌')),
-        );
-      }
+      debugPrint('❌ فشل في حفظ الملاحظة');
     }
   }
 
