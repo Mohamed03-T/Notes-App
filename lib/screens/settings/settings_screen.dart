@@ -210,12 +210,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // قسم حول التطبيق
                 _buildSectionCard(
-                  title: 'حول التطبيق',
+                  title: l10n.aboutApp,
                   icon: Icons.info,
                   children: [
                     _buildListTile(
-                      title: 'الإصدار',
-                      subtitle: '1.0.0',
+                      title: l10n.version,
+                      subtitle: '',
                       icon: Icons.verified,
                       onTap: () {
                         _showAboutDialog();
@@ -223,8 +223,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(height: 1),
                     _buildListTile(
-                      title: 'مطور التطبيق',
-                      subtitle: 'Mohamed03-T',
+                      title: l10n.developer,
+                      subtitle: '',
                       icon: Icons.person,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -371,6 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLanguageDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -388,51 +389,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'اختر اللغة',
+                l10n.selectLanguage,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              RadioListTile<String>(
-                title: Text('العربية', style: Theme.of(context).textTheme.bodyLarge),
-                value: 'العربية',
-                groupValue: _selectedLanguage,
+            children: LanguageManager.instance.supportedLanguages.map((lang) {
+              return RadioListTile<String>(
+                title: Text(lang['name']!, style: Theme.of(context).textTheme.bodyLarge),
+                value: lang['code']!,
+                groupValue: LanguageManager.instance.currentLocale.languageCode,
                 activeColor: Theme.of(context).colorScheme.primary,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLanguage = value!;
-                  });
+                onChanged: (value) async {
+                  if (value != null) {
+                    await LanguageManager.instance.changeLanguage(value);
+                  }
                   Navigator.pop(context);
                 },
-              ),
-              RadioListTile<String>(
-                title: Text('English', style: Theme.of(context).textTheme.bodyLarge),
-                value: 'English',
-                groupValue: _selectedLanguage,
-                activeColor: Theme.of(context).colorScheme.primary,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLanguage = value!;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              RadioListTile<String>(
-                title: Text('Français', style: Theme.of(context).textTheme.bodyLarge),
-                value: 'Français',
-                groupValue: _selectedLanguage,
-                activeColor: Theme.of(context).colorScheme.primary,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLanguage = value!;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-            ],
+              );
+            }).toList(),
           ),
           actions: [
             TextButton.icon(
@@ -443,7 +420,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               label: Text(
-                'إلغاء',
+                l10n.cancel,
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
@@ -454,6 +431,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showAboutDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -478,7 +456,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'تطبيق الملاحظات',
+                l10n.appTitle,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ],
