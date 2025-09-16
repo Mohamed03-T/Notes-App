@@ -65,8 +65,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(ThemeManager.instance.isDarkMode 
-                                  ? 'تم تفعيل المظهر الداكن' 
-                                  : 'تم تفعيل المظهر الفاتح'),
+                                  ? l10n.darkModeEnabled
+                                  : l10n.lightModeEnabled),
                               duration: const Duration(seconds: 2),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
@@ -79,13 +79,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(height: 1),
                     _buildListTile(
-                      title: 'حجم الخط',
-                      subtitle: 'متوسط',
+                      title: l10n.fontSize,
+                      subtitle: l10n.fontSizeSubtitle,
                       icon: Icons.text_fields,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('سيتم إضافة خيارات حجم الخط قريباً'),
+                          SnackBar(
+                            content: Text(l10n.fontSizeComingSoon),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -98,24 +98,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // قسم اللغة
                 _buildSectionCard(
-                  title: 'اللغة والمنطقة',
+                  title: l10n.languageAndRegion,
                   icon: Icons.language,
                   children: [
                     _buildListTile(
-                      title: 'اللغة',
-                      subtitle: _selectedLanguage,
+                      title: l10n.language,
+                      subtitle: LanguageManager.instance.currentLanguageName,
                       icon: Icons.language,
                       onTap: () => _showLanguageDialog(),
                     ),
                     const Divider(height: 1),
                     _buildListTile(
-                      title: 'المنطقة الزمنية',
-                      subtitle: 'GMT+3 (الرياض)',
+                      title: l10n.timezone,
+                      subtitle: l10n.timezoneSubtitle,
                       icon: Icons.schedule,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('سيتم إضافة خيارات المنطقة الزمنية قريباً'),
+                          SnackBar(
+                            content: Text(l10n.timezoneComingSoon),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -128,12 +128,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // قسم الإشعارات
                 _buildSectionCard(
-                  title: 'الإشعارات',
+                  title: l10n.notifications,
                   icon: Icons.notifications,
                   children: [
                     _buildSwitchTile(
-                      title: 'تفعيل الإشعارات',
-                      subtitle: 'استقبال إشعارات التطبيق',
+                      title: l10n.enableNotifications,
+                      subtitle: l10n.enableNotificationsSubtitle,
                       icon: Icons.notifications_active,
                       value: _notificationsEnabled,
                       onChanged: (value) {
@@ -173,12 +173,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // قسم النسخ الاحتياطي
                 _buildSectionCard(
-                  title: 'النسخ الاحتياطي والمزامنة',
+                  title: l10n.backupAndSync,
                   icon: Icons.cloud_sync,
                   children: [
                     _buildListTile(
-                      title: 'نسخ احتياطي تلقائي',
-                      subtitle: 'مفعل - آخر نسخة: اليوم',
+                      title: l10n.autoBackup,
+                      subtitle: l10n.autoBackupSubtitle,
                       icon: Icons.backup,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
