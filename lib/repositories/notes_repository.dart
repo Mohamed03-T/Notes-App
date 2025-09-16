@@ -19,7 +19,13 @@ class NotesRepository {
 
   // Keep an in-memory seed for UI, but persist notes to local storage
   final List<PageModel> _pages = [];
-  static const String _notesKey = 'saved_notes';
+  
+  // مفاتيح التخزين مع إصدارات
+  static const String _notesKey = 'saved_notes_v2'; // تحديث الإصدار
+  static const String _versionKey = 'data_version';
+  static const String _backupKey = 'backup_notes_v2';
+  static const int _currentDataVersion = 2; // الإصدار الحالي للبيانات
+  
   bool _isInitialized = false;
   bool _hasNewChanges = false; // متغير لتتبع التغييرات الجديدة
 
@@ -38,6 +44,7 @@ class NotesRepository {
   Future<void> _initialize() async {
     if (!_isInitialized) {
       _seed();
+      await _checkAndMigrateData(); // تحقق من الإصدار والترحيل
       await _loadSavedNotes();
       _isInitialized = true;
     }
@@ -49,9 +56,65 @@ class NotesRepository {
     _hasNewChanges = false;
   }
 
+  // تحقق من إصدار البيانات والترحيل إذا لزم الأمر
+  Future<void> _checkAndMigrateData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentVersion = prefs.getInt(_versionKey) ?? 1;
+      
+      debugPrint('🔄 فحص إصدار البيانات: الحالي=$currentVersion, المطلوب=$_currentDataVersion');
+      
+      if (currentVersion < _currentDataVersion) {
+        debugPrint('🔄 بدء ترحيل البيانات من الإصدار $currentVersion إلى $_currentDataVersion');
+        await _migrateFromVersion(currentVersion);
+        await prefs.setInt(_versionKey, _currentDataVersion);
+        debugPrint('✅ تم الترحيل بنجاح إلى الإصدار $_currentDataVersion');
+      }
+    } catch (e) {
+      debugPrint('❌ فشل في فحص/ترحيل البيانات: $e');
+    }
+  }
+
+  // ترحيل البيانات من إصدار قديم
+  Future<void> _migrateFromVersion(int fromVersion) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      if (fromVersion == 1) {
+        // ترحيل من الإصدار 1 إلى 2
+        debugPrint('📦 ترحيل البيانات من الإصدار 1 إلى 2');
+        
+        // نسخ البيانات القديمة إلى نسخة احتياطية
+        final oldNotes = prefs.getStringList('saved_notes') ?? [];
+        if (oldNotes.isNotEmpty) {
+          await prefs.setStringList(_backupKey, oldNotes);
+          debugPrint('💾 تم إنشاء نسخة احتياطية من ${oldNotes.length} ملاحظة');
+          
+          // نسخ البيانات إلى المفتاح الجديد
+          await prefs.setStringList(_notesKey, oldNotes);
+          debugPrint('✅ تم نسخ البيانات إلى المفتاح الجديد');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ فشل في ترحيل البيانات: $e');
+    }
+  }
+
   Future<void> _loadSavedNotes() async {
     try {
       debugPrint('📖 بدء تحميل الملاحظات المحفوظة...');
+      
+      // التحقق من سلامة البيانات أولاً
+      final isDataValid = await validateDataIntegrity();
+      if (!isDataValid) {
+        debugPrint('⚠️ البيانات قد تكون تالفة، محاولة الاستعادة من النسخة الاحتياطية...');
+        final restored = await restoreFromBackup();
+        if (!restored) {
+          debugPrint('❌ فشل في الاستعادة من النسخة الاحتياطية');
+          return;
+        }
+      }
+      
       final prefs = await SharedPreferences.getInstance();
       final notesJson = prefs.getStringList(_notesKey) ?? [];
       debugPrint('📖 تم العثور على ${notesJson.length} ملاحظة محفوظة');
@@ -84,31 +147,18 @@ class NotesRepository {
           
           var folder = getFolder(pageId, folderId);
           
-          // إذا لم يجد المجلد أو الصفحة، حاول إنشاء صفحة ومجلد افتراضيين
+          // إذا لم يجد المجلد أو الصفحة، تجاهل الملاحظة
           if (folder == null) {
-            debugPrint('⚠️ المجلد غير موجود، سيتم إنشاء مجلد افتراضي');
-            // إنشاء صفحة افتراضية إذا لم تكن موجودة
-            if (_pages.isEmpty) {
-              final defaultPageId = addNewPage('صفحة افتراضية');
-              final defaultFolderId = addNewFolder(defaultPageId, 'الملاحظات');
-              folder = getFolder(defaultPageId, defaultFolderId);
-            } else {
-              // إنشاء مجلد افتراضي في أول صفحة
-              final firstPage = _pages.first;
-              if (firstPage.folders.isEmpty) {
-                final defaultFolderId = addNewFolder(firstPage.id, 'الملاحظات');
-                folder = getFolder(firstPage.id, defaultFolderId);
-              } else {
-                folder = firstPage.folders.first;
-              }
-            }
+            debugPrint('⚠️ تجاهل الملاحظة لأن المجلد الأصلي غير موجود: pageId=$pageId, folderId=$folderId');
+            debugPrint('📝 محتوى الملاحظة المتجاهلة: ${note.content}');
+            continue;
           }
           
-          if (folder != null && !folder.notes.any((n) => n.id == note.id)) {
+          if (!folder.notes.any((n) => n.id == note.id)) {
             folder.notes.add(note);
             debugPrint('✅ تم إضافة الملاحظة للمجلد ${folder.title}');
           } else {
-            debugPrint('⚠️ المجلد غير موجود أو الملاحظة موجودة مسبقاً');
+            debugPrint('⚠️ الملاحظة موجودة مسبقاً في المجلد');
           }
         } catch (e) {
           debugPrint('❌ خطأ في تحميل ملاحظة: $e');
@@ -117,6 +167,8 @@ class NotesRepository {
       debugPrint('📖 انتهى تحميل الملاحظات');
       // بعد تحميل كل الملاحظات، أعد حساب أزمنة التحديث لكل مجلد بناءً على أحدث ملاحظة به
       _recomputeAllFolderTimestamps();
+      // تحميل ترتيب المجلدات المحفوظ
+      await _loadFolderOrders();
     } catch (e) {
       debugPrint('❌ فشل في تحميل الملاحظات: $e');
     }
@@ -141,6 +193,53 @@ class NotesRepository {
           );
         }
       }
+    }
+  }
+
+  // تحميل ترتيب المجلدات المحفوظ
+  Future<void> _loadFolderOrders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      debugPrint('📂 تحميل ترتيب المجلدات المحفوظ...');
+      
+      for (final page in _pages) {
+        final orderKey = 'folder_order_${page.id}';
+        final savedOrder = prefs.getStringList(orderKey);
+        
+        if (savedOrder != null && savedOrder.isNotEmpty) {
+          debugPrint('📂 ترتيب محفوظ للصفحة ${page.title}: $savedOrder');
+          
+          // إعادة ترتيب المجلدات حسب الترتيب المحفوظ
+          final Map<String, FolderModel> folderMap = {
+            for (var f in page.folders) f.id: f
+          };
+          
+          final reorderedFolders = <FolderModel>[];
+          for (final folderId in savedOrder) {
+            if (folderMap.containsKey(folderId)) {
+              reorderedFolders.add(folderMap[folderId]!);
+              folderMap.remove(folderId);
+            } else {
+              debugPrint('⚠️ مجلد مفقود في الترتيب المحفوظ: $folderId');
+            }
+          }
+          
+          // إضافة أي مجلدات جديدة لم تكن في الترتيب المحفوظ
+          if (folderMap.isNotEmpty) {
+            debugPrint('📂 إضافة مجلدات جديدة: ${folderMap.keys.toList()}');
+            reorderedFolders.addAll(folderMap.values);
+          }
+          
+          page.folders.clear();
+          page.folders.addAll(reorderedFolders);
+          
+          debugPrint('✅ تم تحميل ترتيب المجلدات للصفحة: ${page.title}');
+        } else {
+          debugPrint('📂 لا يوجد ترتيب محفوظ للصفحة: ${page.title}');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ فشل في تحميل ترتيب المجلدات: $e');
     }
   }
 
@@ -221,6 +320,34 @@ class NotesRepository {
     page.folders.add(newFolder);
     debugPrint('📁 تم إضافة مجلد جديد: $folderTitle في الصفحة: ${page.title} (ID: $folderId)');
     return folderId;
+  }
+  
+  // إعادة ترتيب المجلدات وحفظ الترتيب
+  Future<void> reorderFolders(String pageId, List<String> orderedFolderIds) async {
+    final page = getPage(pageId);
+    if (page == null) return;
+    
+    // Map ids to folder models
+    final Map<String, FolderModel> map = {for (var f in page.folders) f.id: f};
+    page.folders
+      ..clear()
+      ..addAll(orderedFolderIds.map((id) => map[id]!).toList());
+    
+    // Persist order with safe save
+    try {
+      final success = await _safeSetStringList('folder_order_$pageId', orderedFolderIds);
+      if (success) {
+        debugPrint('✅ تم حفظ ترتيب المجلدات للصفحة: $pageId');
+        // أيضاً احفظ آخر وقت تحديث للترتيب
+        await _safeSave('folder_order_timestamp_$pageId', DateTime.now().millisecondsSinceEpoch.toString());
+      } else {
+        throw Exception('فشل في حفظ ترتيب المجلدات');
+      }
+    } catch (e) {
+      debugPrint('❌ فشل حفظ ترتيب المجلدات: $e');
+      // محاولة استرداد البيانات من النسخة الاحتياطية
+      await _recoverFromBackup();
+    }
   }
   
   
@@ -323,10 +450,18 @@ class NotesRepository {
       currentNotes.add(jsonEncode(noteData));
       debugPrint('NotesRepository: added note to list, new count = ${currentNotes.length}');
       
-      await prefs.setStringList(_notesKey, currentNotes);
-      debugPrint('NotesRepository: saved to SharedPreferences successfully');
+      // حفظ نسخة احتياطية كل 10 ملاحظات
+      if (currentNotes.length % 10 == 0) {
+        await _createBackup(currentNotes);
+      }
+
+      // استخدام الحفظ الآمن مع إعادة المحاولة
+      final saveSuccess = await _safeSetStringList(_notesKey, currentNotes);
+      if (!saveSuccess) {
+        throw Exception('فشل في حفظ البيانات بشكل آمن');
+      }
       
-      // Also add to in-memory for immediate UI update
+      debugPrint('NotesRepository: saved to SharedPreferences successfully');      // Also add to in-memory for immediate UI update
       final newNote = NoteModel(id: id, type: NoteType.text, content: content);
       final folder = getFolder(pageId, folderId);
       if (folder != null) {
@@ -383,10 +518,18 @@ class NotesRepository {
     }
   }
 
-  // دالة لمسح جميع البيانات المحفوظة (للاختبار)
+  // دالة لمسح جميع البيانات المحفوظة (للاختبار) مع نسخة احتياطية
   Future<void> clearAllSavedNotes() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      
+      // إنشاء نسخة احتياطية قبل المسح
+      final currentNotes = prefs.getStringList(_notesKey) ?? [];
+      if (currentNotes.isNotEmpty) {
+        await _createBackup(currentNotes);
+        debugPrint('💾 تم إنشاء نسخة احتياطية قبل المسح');
+      }
+      
       await prefs.remove(_notesKey);
       debugPrint('🗑️ تم مسح جميع الملاحظات المحفوظة');
     } catch (e) {
@@ -409,6 +552,76 @@ class NotesRepository {
     }
   }
 
+  // إنشاء نسخة احتياطية من البيانات
+  Future<void> _createBackup(List<String> notesData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_backupKey, notesData);
+      await prefs.setString('backup_timestamp', DateTime.now().toIso8601String());
+      debugPrint('💾 تم إنشاء نسخة احتياطية من ${notesData.length} ملاحظة');
+    } catch (e) {
+      debugPrint('❌ فشل في إنشاء النسخة الاحتياطية: $e');
+    }
+  }
+
+  // استرداد البيانات من النسخة الاحتياطية
+  Future<bool> restoreFromBackup() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final backupData = prefs.getStringList(_backupKey);
+      
+      if (backupData != null && backupData.isNotEmpty) {
+        await prefs.setStringList(_notesKey, backupData);
+        debugPrint('✅ تم استرداد ${backupData.length} ملاحظة من النسخة الاحتياطية');
+        return true;
+      } else {
+        debugPrint('⚠️ لا توجد نسخة احتياطية متاحة');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ فشل في استرداد النسخة الاحتياطية: $e');
+      return false;
+    }
+  }
+
+  // التحقق من سلامة البيانات
+  Future<bool> validateDataIntegrity() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final notesData = prefs.getStringList(_notesKey) ?? [];
+      
+      int validNotes = 0;
+      int corruptedNotes = 0;
+      
+      for (final noteStr in notesData) {
+        try {
+          final noteData = jsonDecode(noteStr);
+          if (noteData['id'] != null && noteData['content'] != null) {
+            validNotes++;
+          } else {
+            corruptedNotes++;
+          }
+        } catch (e) {
+          corruptedNotes++;
+        }
+      }
+      
+      debugPrint('🔍 فحص سلامة البيانات: صالحة=$validNotes، تالفة=$corruptedNotes');
+      
+      // إذا كان أكثر من 10% من البيانات تالفة، أعتبر البيانات غير سليمة
+      final totalNotes = validNotes + corruptedNotes;
+      if (totalNotes > 0 && (corruptedNotes / totalNotes) > 0.1) {
+        debugPrint('⚠️ البيانات قد تكون تالفة: ${(corruptedNotes / totalNotes * 100).toStringAsFixed(1)}% تالفة');
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      debugPrint('❌ فشل في فحص سلامة البيانات: $e');
+      return false;
+    }
+  }
+
   // دالة لإعادة تحميل البيانات من التخزين المحلي
   Future<void> refreshData() async {
     debugPrint('🔄 إعادة تحميل البيانات...');
@@ -422,6 +635,118 @@ class NotesRepository {
     
     // إعادة تحميل الملاحظات من SharedPreferences
     await _loadSavedNotes();
+    // ملاحظة: _loadFolderOrders تم استدعاؤها بالفعل في _loadSavedNotes
     debugPrint('✅ تم إعادة تحميل البيانات بنجاح');
+  }
+
+  // Add error recovery system
+  Future<bool> _recoverFromBackup() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final backupData = prefs.getString('${_notesKey}_backup');
+      
+      if (backupData != null && backupData.isNotEmpty) {
+        await prefs.setString(_notesKey, backupData);
+        debugPrint('✅ تم استرداد البيانات من النسخة الاحتياطية');
+        return true;
+      }
+    } catch (e) {
+      debugPrint('❌ فشل في استرداد البيانات من النسخة الاحتياطية: $e');
+    }
+    return false;
+  }
+
+  // Add retry mechanism for critical operations
+  Future<T?> _retryOperation<T>(Future<T> Function() operation, {int maxRetries = 3}) async {
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (e) {
+        debugPrint('❌ محاولة $attempt فشلت: $e');
+        if (attempt == maxRetries) {
+          debugPrint('💀 فشل في العملية بعد $maxRetries محاولات');
+          rethrow;
+        }
+        await Future.delayed(Duration(milliseconds: 100 * attempt));
+      }
+    }
+    return null;
+  }
+
+  // Enhanced save operation with retry and validation
+  Future<bool> _safeSave(String key, String data) async {
+    return await _retryOperation(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final success = await prefs.setString(key, data);
+      
+      // Verify the save was successful
+      final savedData = prefs.getString(key);
+      if (savedData != data) {
+        throw Exception('فشل في التحقق من حفظ البيانات');
+      }
+      
+      debugPrint('✅ تم حفظ البيانات بنجاح للمفتاح: $key');
+      return success;
+    }) ?? false;
+  }
+
+  // Enhanced save operation for string lists
+  Future<bool> _safeSetStringList(String key, List<String> data) async {
+    return await _retryOperation(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final success = await prefs.setStringList(key, data);
+      
+      // Verify the save was successful
+      final savedData = prefs.getStringList(key) ?? [];
+      if (savedData.length != data.length) {
+        throw Exception('فشل في التحقق من حفظ البيانات - طول القائمة مختلف');
+      }
+      
+      // Quick verification of a few items
+      for (int i = 0; i < data.length && i < 3; i++) {
+        if (savedData[i] != data[i]) {
+          throw Exception('فشل في التحقق من حفظ البيانات - محتوى مختلف');
+        }
+      }
+      
+      debugPrint('✅ تم حفظ قائمة البيانات بنجاح للمفتاح: $key (${data.length} عنصر)');
+      return success;
+    }) ?? false;
+  }
+
+  // Enhanced data cleanup with protection
+  Future<void> performMaintenanceCleanup() async {
+    try {
+      debugPrint('🧹 بدء تنظيف البيانات...');
+      
+      // Create a comprehensive backup before cleanup
+      final prefs = await SharedPreferences.getInstance();
+      final currentNotes = prefs.getStringList(_notesKey) ?? [];
+      await _createBackup(currentNotes);
+      
+      // Remove old temporary data
+      final allKeys = prefs.getKeys();
+      final keysToRemove = allKeys.where((key) => 
+        key.startsWith('temp_') || 
+        key.startsWith('cache_') ||
+        key.endsWith('_old')
+      ).toList();
+      
+      for (final key in keysToRemove) {
+        await prefs.remove(key);
+        debugPrint('🗑️ تم حذف البيانات المؤقتة: $key');
+      }
+      
+      // Validate data integrity after cleanup
+      final isValid = await validateDataIntegrity();
+      if (!isValid) {
+        debugPrint('⚠️ تم اكتشاف مشاكل في البيانات بعد التنظيف');
+        await _recoverFromBackup();
+      }
+      
+      debugPrint('✅ تم انتهاء تنظيف البيانات بنجاح');
+    } catch (e) {
+      debugPrint('❌ فشل في تنظيف البيانات: $e');
+    }
   }
 }

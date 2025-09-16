@@ -16,25 +16,32 @@ class FolderNotesScreen extends StatefulWidget {
 }
 
 class _FolderNotesScreenState extends State<FolderNotesScreen> {
-  late NotesRepository repo;
+  NotesRepository? repo;
   
   @override
   void initState() {
     super.initState();
-    repo = NotesRepository();
+    _initializeRepository();
+  }
+  
+  Future<void> _initializeRepository() async {
+    repo = await NotesRepository.instance;
     // طباعة حالة المجلد عند الفتح
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final folder = repo.getFolder(widget.pageId, widget.folderId);
+      final folder = repo?.getFolder(widget.pageId, widget.folderId);
       debugPrint('🔍 فتح مجلد: ${folder?.title} - عدد الملاحظات: ${folder?.notes.length}');
     });
+    setState(() {});
   }
 
   Future<void> _saveNote(String text) async {
+    if (repo == null) return;
+    
     // حفظ الملاحظة في المجلد المحدد
     debugPrint('💾 حفظ ملاحظة في المجلد: ${widget.folderId}');
     debugPrint('📝 النص: $text');
 
-    final success = await repo.saveNoteToFolder(text, widget.pageId, widget.folderId);
+    final success = await repo!.saveNoteToFolder(text, widget.pageId, widget.folderId);
     
     if (success) {
       setState(() {
@@ -49,7 +56,21 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final folder = repo.getFolder(widget.pageId, widget.folderId)!;
+    if (repo == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('تحميل...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    final folder = repo!.getFolder(widget.pageId, widget.folderId);
+    
+    if (folder == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('خطأ')),
+        body: const Center(child: Text('المجلد غير موجود')),
+      );
+    }
     
     return Scaffold(
       appBar: AppBar(

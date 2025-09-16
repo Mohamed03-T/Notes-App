@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/language_manager.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -9,17 +11,18 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _selectedLanguage = 'العربية';
   bool _notificationsEnabled = true;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return AnimatedBuilder(
-      animation: ThemeManager.instance,
+      animation: Listenable.merge([ThemeManager.instance, LanguageManager.instance]),
       builder: (context, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('الإعدادات'),
+            title: Text(l10n.settings),
             backgroundColor: AppTheme.getCardColor(context),
             elevation: 0,
             shadowColor: Colors.transparent,
@@ -48,12 +51,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 // قسم المظهر
                 _buildSectionCard(
-                  title: 'المظهر والعرض',
+                  title: l10n.appearanceAndDisplay,
                   icon: Icons.palette,
                   children: [
                     _buildSwitchTile(
-                      title: 'المظهر الداكن',
-                      subtitle: 'تفعيل المظهر الداكن للتطبيق',
+                      title: l10n.darkMode,
+                      subtitle: l10n.darkModeSubtitle,
                       icon: Icons.dark_mode,
                       value: ThemeManager.instance.isDarkMode,
                       onChanged: (value) async {

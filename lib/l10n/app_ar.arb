@@ -1,0 +1,291 @@
+{
+  "@@locale": "ar",
+  "appTitle": "تطبيق الملاحظات",
+  "@appTitle": {
+    "description": "عنوان التطبيق"
+  },
+  "settings": "الإعدادات",
+  "@settings": {
+    "description": "عنوان شاشة الإعدادات"
+  },
+  "appearanceAndDisplay": "المظهر والعرض",
+  "@appearanceAndDisplay": {
+    "description": "قسم المظهر والعرض في الإعدادات"
+  },
+  "darkMode": "المظهر الداكن",
+  "@darkMode": {
+    "description": "خيار المظهر الداكن"
+  },
+  "darkModeSubtitle": "تفعيل المظهر الداكن للتطبيق",
+  "@darkModeSubtitle": {
+    "description": "وصف خيار المظهر الداكن"
+  },
+  "fontSize": "حجم الخط",
+  "@fontSize": {
+    "description": "خيار حجم الخط"
+  },
+  "fontSizeSubtitle": "متوسط",
+  "@fontSizeSubtitle": {
+    "description": "قيمة حجم الخط الحالية"
+  },
+  "languageAndRegion": "اللغة والمنطقة",
+  "@languageAndRegion": {
+    "description": "قسم اللغة والمنطقة في الإعدادات"
+  },
+  "language": "اللغة",
+  "@language": {
+    "description": "خيار اللغة"
+  },
+  "timezone": "المنطقة الزمنية",
+  "@timezone": {
+    "description": "خيار المنطقة الزمنية"
+  },
+  "timezoneSubtitle": "GMT+3 (الرياض)",
+  "@timezoneSubtitle": {
+    "description": "قيمة المنطقة الزمنية الحالية"
+  },
+  "notifications": "الإشعارات",
+  "@notifications": {
+    "description": "قسم الإشعارات في الإعدادات"
+  },
+  "enableNotifications": "تفعيل الإشعارات",
+  "@enableNotifications": {
+    "description": "خيار تفعيل الإشعارات"
+  },
+  "enableNotificationsSubtitle": "استقبال إشعارات التذكير",
+  "@enableNotificationsSubtitle": {
+    "description": "وصف خيار تفعيل الإشعارات"
+  },
+  "backupAndSync": "النسخ الاحتياطي والمزامنة",
+  "@backupAndSync": {
+    "description": "قسم النسخ الاحتياطي والمزامنة"
+  },
+  "autoBackup": "النسخ الاحتياطي التلقائي",
+  "@autoBackup": {
+    "description": "خيار النسخ الاحتياطي التلقائي"
+  },
+  "autoBackupSubtitle": "حفظ تلقائي للملاحظات",
+  "@autoBackupSubtitle": {
+    "description": "وصف خيار النسخ الاحتياطي التلقائي"
+  },
+  "exportData": "تصدير البيانات",
+  "@exportData": {
+    "description": "خيار تصدير البيانات"
+  },
+  "exportDataSubtitle": "JSON, PDF, TXT",
+  "@exportDataSubtitle": {
+    "description": "تنسيقات تصدير البيانات"
+  },
+  "importData": "استيراد البيانات",
+  "@importData": {
+    "description": "خيار استيراد البيانات"
+  },
+  "importDataSubtitle": "من ملفات خارجية",
+  "@importDataSubtitle": {
+    "description": "وصف خيار استيراد البيانات"
+  },
+  "support": "الدعم والمساعدة",
+  "@support": {
+    "description": "قسم الدعم والمساعدة"
+  },
+  "helpCenter": "مركز المساعدة",
+  "@helpCenter": {
+    "description": "خيار مركز المساعدة"
+  },
+  "helpCenterSubtitle": "الأسئلة الشائعة والدروس",
+  "@helpCenterSubtitle": {
+    "description": "وصف مركز المساعدة"
+  },
+  "contactUs": "تواصل معنا",
+  "@contactUs": {
+    "description": "خيار التواصل"
+  },
+  "contactUsSubtitle": "support@noteapp.com",
+  "@contactUsSubtitle": {
+    "description": "معلومات التواصل"
+  },
+  "aboutApp": "حول التطبيق",
+  "@aboutApp": {
+    "description": "خيار حول التطبيق"
+  },
+  "selectLanguage": "اختر اللغة",
+  "@selectLanguage": {
+    "description": "عنوان مربع حوار اللغة"
+  },
+  "arabic": "العربية",
+  "@arabic": {
+    "description": "اللغة العربية"
+  },
+  "english": "English",
+  "@english": {
+    "description": "اللغة الإنجليزية"
+  },
+  "french": "Français",
+  "@french": {
+    "description": "اللغة الفرنسية"
+  },
+  "cancel": "إلغاء",
+  "@cancel": {
+    "description": "زر الإلغاء"
+  },
+  "close": "إغلاق",
+  "@close": {
+    "description": "زر الإغلاق"
+  },
+  "version": "الإصدار: 1.0.0",
+  "@version": {
+    "description": "رقم إصدار التطبيق"
+  },
+  "developer": "تطوير: Mohamed03-T",
+  "@developer": {
+    "description": "مطور التطبيق"
+  },
+  "darkModeEnabled": "تم تفعيل المظهر الداكن",
+  "@darkModeEnabled": {
+    "description": "رسالة تفعيل المظهر الداكن"
+  },
+  "lightModeEnabled": "تم تفعيل المظهر الفاتح",
+  "@lightModeEnabled": {
+    "description": "رسالة تفعيل المظهر الفاتح"
+  },
+  "fontSizeComingSoon": "سيتم إضافة خيارات حجم الخط قريباً",
+  "@fontSizeComingSoon": {
+    "description": "رسالة قريباً لحجم الخط"
+  },
+  "timezoneComingSoon": "سيتم إضافة خيارات المنطقة الزمنية قريباً",
+  "@timezoneComingSoon": {
+    "description": "رسالة قريباً للمنطقة الزمنية"
+  },
+  "exportComingSoon": "سيتم إضافة خيارات التصدير قريباً",
+  "@exportComingSoon": {
+    "description": "رسالة قريباً للتصدير"
+  },
+  "importComingSoon": "سيتم إضافة خيارات الاستيراد قريباً",
+  "@importComingSoon": {
+    "description": "رسالة قريباً للاستيراد"
+  },
+  "helpComingSoon": "سيتم إضافة مركز المساعدة قريباً",
+  "@helpComingSoon": {
+    "description": "رسالة قريباً لمركز المساعدة"
+  },
+  "contactComingSoon": "سيتم إضافة خيارات التواصل قريباً",
+  "@contactComingSoon": {
+    "description": "رسالة قريباً للتواصل"
+  },
+  "welcome": "مرحباً بك في تطبيق الملاحظات",
+  "@welcome": {
+    "description": "رسالة الترحيب"
+  },
+  "noPagesYet": "لا توجد صفحات بعد",
+  "@noPagesYet": {
+    "description": "رسالة عدم وجود صفحات"
+  },
+  "createFirstPage": "ابدأ بإنشاء صفحتك الأولى",
+  "@createFirstPage": {
+    "description": "رسالة إنشاء أول صفحة"
+  },
+  "createNewPage": "إنشاء صفحة جديدة",
+  "@createNewPage": {
+    "description": "زر إنشاء صفحة جديدة"
+  },
+  "addNewPage": "إضافة صفحة جديدة",
+  "@addNewPage": {
+    "description": "تلميح إضافة صفحة جديدة"
+  },
+  "addNewFolder": "إضافة مجلد جديد",
+  "@addNewFolder": {
+    "description": "تلميح إضافة مجلد جديد"
+  },
+  "loadingData": "جاري تحميل البيانات...",
+  "@loadingData": {
+    "description": "رسالة تحميل البيانات"
+  },
+  "manageFolder": "إدارة المجلد:",
+  "@manageFolder": {
+    "description": "عنوان إدارة المجلد"
+  },
+  "unpinFolder": "إلغاء تثبيت",
+  "@unpinFolder": {
+    "description": "خيار إلغاء التثبيت"
+  },
+  "pinFolder": "تثبيت المجلد",
+  "@pinFolder": {
+    "description": "خيار تثبيت المجلد"
+  },
+  "renameFolder": "تغيير اسم المجلد",
+  "@renameFolder": {
+    "description": "خيار تغيير اسم المجلد"
+  },
+  "changeBackgroundColor": "تغيير لون الخلفية",
+  "@changeBackgroundColor": {
+    "description": "خيار تغيير لون الخلفية"
+  },
+  "deleteFolder": "حذف المجلد",
+  "@deleteFolder": {
+    "description": "خيار حذف المجلد"
+  },
+  "folderName": "اسم المجلد",
+  "@folderName": {
+    "description": "تسمية اسم المجلد"
+  },
+  "confirm": "تأكيد",
+  "@confirm": {
+    "description": "زر التأكيد"
+  },
+  "selectBackgroundColor": "اختر لون الخلفية",
+  "@selectBackgroundColor": {
+    "description": "عنوان اختيار لون الخلفية"
+  },
+  "confirmDelete": "تأكيد الحذف",
+  "@confirmDelete": {
+    "description": "عنوان تأكيد الحذف"
+  },
+  "deleteConfirmMessage": "هل أنت متأكد من حذف المجلد \"{folderName}\"؟\\nسيتم حذف جميع الملاحظات الموجودة فيه.",
+  "@deleteConfirmMessage": {
+    "description": "رسالة تأكيد حذف المجلد",
+    "placeholders": {
+      "folderName": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "حذف",
+  "@delete": {
+    "description": "زر الحذف"
+  },
+  "noFolders": "لا توجد مجلدات",
+  "@noFolders": {
+    "description": "رسالة عدم وجود مجلدات"
+  },
+  "daysAgo": "منذ {count} {count, plural, =1{يوم} other{أيام}}",
+  "@daysAgo": {
+    "description": "منذ أيام",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "منذ {count} {count, plural, =1{ساعة} other{ساعات}}",
+  "@hoursAgo": {
+    "description": "منذ ساعات",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesAgo": "منذ {count} {count, plural, =1{دقيقة} other{دقائق}}",
+  "@minutesAgo": {
+    "description": "منذ دقائق",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "now": "الآن",
+  "@now": {
+    "description": "الآن"
+  }
+}

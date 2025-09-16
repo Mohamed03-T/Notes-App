@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import '../../models/folder_model.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -6,16 +7,16 @@ class FolderCard extends StatefulWidget {
   final FolderModel folder;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
+  final VoidCallback? onDoubleTap; // إضافة callback للنقر المزدوج
+  final bool isDragging;  // add flag
 
-  const FolderCard({Key? key, required this.folder, this.onTap, this.onDelete}) : super(key: key);
+  const FolderCard({Key? key, required this.folder, this.onTap, this.onDelete, this.onDoubleTap, this.isDragging = false}) : super(key: key);
 
   @override
   State<FolderCard> createState() => _FolderCardState();
 }
 
 class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateMixin {
-  // store the position where the user long-pressed
-  Offset _tapPosition = Offset.zero;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   // Removed unused _isPressed flag
@@ -63,158 +64,46 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
     }
   }
 
-  void _onTapDown(TapDownDetails details) {
-    // Start press animation
-    _animationController.forward();
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    // Reverse press animation
-    _animationController.reverse();
-    if (widget.onTap != null) {
-      widget.onTap!();
-    }
-  }
-
-  void _onTapCancel() {
-    // Reverse press animation when tap is cancelled
-    _animationController.reverse();
-  }
-  
-  // Show a popup menu at tap position
-  Future<void> _showContextMenu(Offset position) async {
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
-      items: [
-        PopupMenuItem(value: 'pin', child: Row(children: [const Icon(Icons.push_pin), const SizedBox(width: 8), const Text('تثبيت المجلد')])),
-        PopupMenuItem(value: 'rename', child: Row(children: [const Icon(Icons.edit), const SizedBox(width: 8), const Text('تغيير اسم المجلد')])),
-        PopupMenuItem(value: 'color', child: Row(children: [const Icon(Icons.format_paint), const SizedBox(width: 8), const Text('تغيير لون الخلفية')])),
-        PopupMenuItem(value: 'delete', child: Row(children: [const Icon(Icons.delete, color: Colors.red), const SizedBox(width: 8), const Text('حذف المجلد', style: TextStyle(color: Colors.red))])),
-      ],
-    );
-    switch (selected) {
-      case 'pin':
-        setState(() {
-          widget.folder.isPinned = !widget.folder.isPinned;
-        });
-        debugPrint(widget.folder.isPinned
-            ? '🔖 تم تثبيت المجلد: ${widget.folder.id}'
-            : '📌 تم إلغاء تثبيت المجلد: ${widget.folder.id}');
-        break;
-      case 'rename':
-        // Rename folder
-        final newName = await showDialog<String>(
-          context: context,
-          builder: (ctx) {
-            final controller = TextEditingController(text: widget.folder.title);
-            return AlertDialog(
-              title: const Text('تغيير اسم المجلد'),
-              content: TextField(
-                controller: controller,
-                decoration: const InputDecoration(hintText: 'ادخل الاسم الجديد'),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-                TextButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('تأكيد')),
-              ],
-            );
-          },
-        );
-        if (newName != null && newName.isNotEmpty) {
-          setState(() { widget.folder.title = newName; });
-        }
-        break;
-      case 'color':
-        // Pick from 10 predefined colors
-        final colors = <Color>[
-          Colors.red,
-          Colors.orange,
-          Colors.yellow,
-          Colors.green,
-          Colors.blue,
-          Colors.indigo,
-          Colors.purple,
-          Colors.pink,
-          Colors.teal,
-          Colors.brown,
-        ];
-        final chosen = await showDialog<Color>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('اختر لون الخلفية'),
-            content: SingleChildScrollView(
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: colors.map((c) => GestureDetector(
-                  onTap: () => Navigator.pop(ctx, c),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: c,
-                      shape: BoxShape.circle,
-                      border: widget.folder.backgroundColor == c
-                          ? Border.all(color: Colors.white, width: 2)
-                          : null,
-                    ),
-                  ),
-                )).toList(),
-              ),
-            ),
-          ),
-        );
-        if (chosen != null) {
-          setState(() { widget.folder.backgroundColor = chosen; });
-        }
-        break;
-      case 'delete':
-        // Confirm deletion
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('تأكيد الحذف'),
-            content: const Text('هل تريد حذف هذا المجلد؟ لا يمكن التراجع.'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
-            ],
-          ),
-        );
-        if (confirm == true && widget.onDelete != null) {
-          widget.onDelete!();
-        }
-        break;
-      default:
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final notesCount = widget.folder.notes.length;
     final hasNotes = notesCount > 0;
     final timeAgo = _getTimeAgo(widget.folder.updatedAt);
     
-    return AnimatedBuilder(
+    Widget card = AnimatedBuilder(
       animation: _scaleAnimation,
       builder: (context, child) {
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: GestureDetector(
-            onTap: widget.onTap,
-            onTapDown: (details) {
-              _onTapDown(details);
-              _tapPosition = details.globalPosition;
+            behavior: HitTestBehavior.translucent,
+            // تعطيل التفاعل عندما يكون في وضع السحب
+            onTap: widget.isDragging ? null : () {
+              // Handle single tap
+              if (widget.onTap != null) {
+                widget.onTap!();
+              }
             },
-            onTapUp: _onTapUp,
-            onTapCancel: _onTapCancel,
-            onLongPress: () => _showContextMenu(_tapPosition),
+            onDoubleTap: widget.isDragging ? null : () {
+              // Handle double tap - show context menu
+              if (widget.onDoubleTap != null) {
+                widget.onDoubleTap!();
+              }
+            },
+            onTapDown: widget.isDragging ? null : (details) {
+              _animationController.forward();
+            },
+            onTapUp: widget.isDragging ? null : (_) {
+              _animationController.reverse();
+            },
+            onTapCancel: widget.isDragging ? null : () {
+              _animationController.reverse();
+            },
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: widget.folder.backgroundColor ?? AppTheme.getCardColor(context),
+                color: (widget.folder.backgroundColor ?? AppTheme.getCardColor(context))
+                    .withOpacity(widget.isDragging ? 0.5 : 1.0),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: AppTheme.getCardShadow(context),
                 border: Border.all(
@@ -279,6 +168,77 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                             ),
                           ),
                         ),
+                        // Three-dot menu for folder actions
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert, color: AppTheme.getTextSecondary(context)),
+                          onSelected: (value) async {
+                            switch (value) {
+                              case 'pin':
+                                setState(() {
+                                  widget.folder.isPinned = !widget.folder.isPinned;
+                                });
+                                break;
+                              case 'rename':
+                                final newName = await showDialog<String>(
+                                  context: context,
+                                  builder: (ctx) {
+                                    final controller = TextEditingController(text: widget.folder.title);
+                                    return AlertDialog(
+                                      title: const Text('تغيير اسم المجلد'),
+                                      content: TextField(controller: controller),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+                                        TextButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('تأكيد')),
+                                      ],
+                                    );
+                                  },
+                                );
+                                if (newName != null && newName.isNotEmpty) {
+                                  setState(() { widget.folder.title = newName; });
+                                }
+                                break;
+                              case 'color':
+                                final colors = [Colors.red, Colors.orange, Colors.yellow, Colors.green, Colors.blue, Colors.indigo, Colors.purple, Colors.pink, Colors.teal, Colors.brown];
+                                final chosen = await showDialog<Color>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('اختر لون الخلفية'),
+                                    content: SingleChildScrollView(
+                                      child: Wrap(
+                                        spacing: 8, runSpacing: 8,
+                                        children: colors.map((c) => GestureDetector(
+                                          onTap: () => Navigator.pop(ctx, c),
+                                          child: Container(width: 40, height: 40, decoration: BoxDecoration(color: c, shape: BoxShape.circle, border: widget.folder.backgroundColor == c ? Border.all(color: Colors.white, width: 2) : null)),
+                                        )).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                                if (chosen != null) setState(() { widget.folder.backgroundColor = chosen; });
+                                break;
+                              case 'delete':
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('تأكيد الحذف'),
+                                    content: const Text('هل تريد حذف هذا المجلد؟'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true && widget.onDelete != null) widget.onDelete!();
+                                break;
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            PopupMenuItem(value: 'pin', child: Text(widget.folder.isPinned ? 'إلغاء تثبيت' : 'تثبيت')),
+                            const PopupMenuItem(value: 'rename', child: Text('تغيير الاسم')),
+                            const PopupMenuItem(value: 'color', child: Text('تغيير اللون')),
+                            const PopupMenuItem(value: 'delete', child: Text('حذف', style: TextStyle(color: Colors.red))),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -326,11 +286,13 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                   ),
                 ],
               ),
+              ),
             ),
-          ),
-        );
+          );
       },
     );
+
+    return card;
   }
 
   Widget _buildNotesPreview() {
