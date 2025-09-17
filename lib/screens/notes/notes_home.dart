@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../generated/l10n/app_localizations.dart';
 import '../../components/top_bar/top_bar.dart';
 import '../../repositories/notes_repository.dart';
 import '../../components/folder_card/folder_card.dart';
 import '../../models/folder_model.dart';
+import '../../widgets/app_logo.dart';
 import 'folder_notes_screen.dart';
 import 'all_pages_screen.dart';
 import 'add_folder_screen.dart';
@@ -106,7 +108,7 @@ class _NotesHomeState extends State<NotesHome> {
   }
 
   // دالة لإظهار قائمة التحكم بالمجلد عند النقر المزدوج
-  void _showFolderActions(FolderModel folder) async {
+  void _showFolderActions(FolderModel folder, AppLocalizations l10n) async {
     final result = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -131,7 +133,7 @@ class _NotesHomeState extends State<NotesHome> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'إدارة المجلد: ${folder.title}',
+                  '${l10n.manageFolder} ${folder.title}',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -143,22 +145,22 @@ class _NotesHomeState extends State<NotesHome> {
                   folder.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
                   color: Colors.blue,
                 ),
-                title: Text(folder.isPinned ? 'إلغاء تثبيت' : 'تثبيت المجلد'),
+                title: Text(folder.isPinned ? l10n.unpinFolder : l10n.pinFolder),
                 onTap: () => Navigator.pop(context, 'pin'),
               ),
               ListTile(
                 leading: const Icon(Icons.edit, color: Colors.green),
-                title: const Text('تغيير اسم المجلد'),
+                title: Text(l10n.renameFolder),
                 onTap: () => Navigator.pop(context, 'rename'),
               ),
               ListTile(
                 leading: const Icon(Icons.palette, color: Colors.orange),
-                title: const Text('تغيير لون الخلفية'),
+                title: Text(l10n.changeBackgroundColor),
                 onTap: () => Navigator.pop(context, 'color'),
               ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('حذف المجلد', style: TextStyle(color: Colors.red)),
+                title: Text(l10n.deleteFolder, style: const TextStyle(color: Colors.red)),
                 onTap: () => Navigator.pop(context, 'delete'),
               ),
               const SizedBox(height: 20),
@@ -169,12 +171,12 @@ class _NotesHomeState extends State<NotesHome> {
     );
 
     if (result != null) {
-      await _handleFolderAction(folder, result);
+      await _handleFolderAction(folder, result, l10n);
     }
   }
 
   // دالة لمعالجة إجراءات المجلد
-  Future<void> _handleFolderAction(FolderModel folder, String action) async {
+  Future<void> _handleFolderAction(FolderModel folder, String action, AppLocalizations l10n) async {
     switch (action) {
       case 'pin':
         setState(() {
@@ -188,23 +190,23 @@ class _NotesHomeState extends State<NotesHome> {
             final controller = TextEditingController(text: folder.title);
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('تغيير اسم المجلد'),
+              title: Text(l10n.renameFolder),
               content: TextField(
                 controller: controller,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'اسم المجلد',
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: l10n.folderName,
                 ),
                 autofocus: true,
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('إلغاء'),
+                  child: Text(l10n.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-                  child: const Text('تأكيد'),
+                  child: Text(l10n.confirm),
                 ),
               ],
             );
@@ -226,7 +228,7 @@ class _NotesHomeState extends State<NotesHome> {
           context: context,
           builder: (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('اختر لون الخلفية'),
+            title: Text(l10n.selectBackgroundColor),
             content: SingleChildScrollView(
               child: Wrap(
                 spacing: 8,
@@ -264,7 +266,7 @@ class _NotesHomeState extends State<NotesHome> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('إلغاء'),
+                child: Text(l10n.cancel),
               ),
             ],
           ),
@@ -280,17 +282,17 @@ class _NotesHomeState extends State<NotesHome> {
           context: context,
           builder: (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('تأكيد الحذف'),
-            content: Text('هل أنت متأكد من حذف المجلد "${folder.title}"؟\nسيتم حذف جميع الملاحظات الموجودة فيه.'),
+            title: Text(l10n.confirmDelete),
+            content: Text(l10n.deleteConfirmMessage(folder.title)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('إلغاء'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('حذف', style: TextStyle(color: Colors.white)),
+                child: Text(l10n.delete, style: const TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -307,6 +309,8 @@ class _NotesHomeState extends State<NotesHome> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     // عرض شاشة التحميل إذا لم يتم تحميل البيانات بعد
     if (isInitializing || repo == null) {
       return Scaffold(
@@ -317,7 +321,7 @@ class _NotesHomeState extends State<NotesHome> {
               CircularProgressIndicator(),
               SizedBox(height: 16),
               Text(
-                'جاري تحميل البيانات...',
+                l10n.loadingData,
                 style: TextStyle(fontSize: 16),
               ),
             ],
@@ -341,7 +345,7 @@ class _NotesHomeState extends State<NotesHome> {
     if (current == null || allPages.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('مرحباً بك في تطبيق الملاحظات'),
+          title: Text(l10n.welcome),
           backgroundColor: Colors.grey.shade800,
           foregroundColor: Colors.grey.shade200,
           actions: [
@@ -364,7 +368,7 @@ class _NotesHomeState extends State<NotesHome> {
                 }
               },
               icon: const Icon(Icons.add, color: Colors.blue),
-              tooltip: 'إضافة صفحة جديدة',
+              tooltip: l10n.addNewPage,
             ),
           ],
         ),
@@ -372,14 +376,13 @@ class _NotesHomeState extends State<NotesHome> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.pages,
-                size: 80,
-                color: Colors.blue.shade300,
+              const AppLogo(
+                size: 150, // زيادة الحجم
+                showText: false,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               Text(
-                'لا توجد صفحات بعد',
+                l10n.noPagesYet,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -388,7 +391,7 @@ class _NotesHomeState extends State<NotesHome> {
               ),
               const SizedBox(height: 8),
               Text(
-                'ابدأ بإنشاء صفحتك الأولى',
+                l10n.createFirstPage,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey.shade500,
@@ -413,7 +416,7 @@ class _NotesHomeState extends State<NotesHome> {
                   }
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('إنشاء صفحة جديدة'),
+                label: Text(l10n.createNewPage),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
@@ -470,7 +473,36 @@ class _NotesHomeState extends State<NotesHome> {
           }
           setState(() {});
         },
-        child: GridView.count(
+        child: folderList.isEmpty 
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const AppLogo(
+                    size: 120, // زيادة الحجم
+                    showText: false,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'لا توجد مجلدات بعد',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'انقر على + لإضافة مجلد جديد',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : GridView.count(
           crossAxisCount: 2,
           padding: const EdgeInsets.all(12),
           childAspectRatio: 0.85, // تعديل النسبة لإعطاء مساحة أكبر للمعاينة
@@ -611,7 +643,7 @@ class _NotesHomeState extends State<NotesHome> {
                         }
                         setState(() {});
                       },
-                      onDoubleTap: () => _showFolderActions(f), // إضافة النقر المزدوج
+                      onDoubleTap: () => _showFolderActions(f, l10n), // إضافة النقر المزدوج
                       onDelete: () {
                         repo!.deleteFolder(current.id, f.id);
                         setState(() {});
@@ -644,7 +676,7 @@ class _NotesHomeState extends State<NotesHome> {
                 },
               );
             }).toList(),
-        ),
+          ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -664,7 +696,7 @@ class _NotesHomeState extends State<NotesHome> {
           }
         },
         backgroundColor: Colors.blue,
-        tooltip: 'إضافة مجلد جديد',
+        tooltip: l10n.addNewFolder,
         child: const Icon(Icons.create_new_folder, color: Colors.white),
       ),
     );

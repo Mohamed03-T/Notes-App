@@ -240,7 +240,7 @@
   "@confirmDelete": {
     "description": "عنوان تأكيد الحذف"
   },
-  "deleteConfirmMessage": "هل أنت متأكد من حذف المجلد \"{folderName}\"؟\\nسيتم حذف جميع الملاحظات الموجودة فيه.",
+  "deleteConfirmMessage": "هل أنت متأكد من حذف المجلد \"{folderName}\"؟\nسيتم حذف جميع الملاحظات الموجودة فيه.",
   "@deleteConfirmMessage": {
     "description": "رسالة تأكيد حذف المجلد",
     "placeholders": {

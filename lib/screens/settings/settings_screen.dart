@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../../generated/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/language_manager.dart';
+import '../../widgets/app_logo.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -234,6 +235,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         );
                       },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // قسم معلومات التطبيق مع الشعار
+                _buildSectionCard(
+                  title: 'معلومات التطبيق',
+                  icon: Icons.info_outline,
+                  children: [
+                    // الشعار مع معلومات التطبيق
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const AppLogo(
+                            size: 80,
+                            showText: true,
+                            text: 'Notes App',
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'تطبيق ملاحظات حديث وأنيق مع دعم المظهر الداكن والفاتح',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.verified,
+                                color: Theme.of(context).primaryColor,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'الإصدار 1.0.0',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -479,7 +527,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'الإصدار: 1.0.0',
+                    l10n.version,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -494,7 +542,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'تطوير: Mohamed03-T',
+                    l10n.developer,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -510,7 +558,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               label: Text(
-                'إغلاق',
+                l10n.close,
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),

@@ -60,7 +60,7 @@
   "confirm": "Confirm",
   "selectBackgroundColor": "Select Background Color",
   "confirmDelete": "Confirm Delete",
-  "deleteConfirmMessage": "Are you sure you want to delete the folder \"{folderName}\"?\\nAll notes inside it will be deleted.",
+  "deleteConfirmMessage": "Are you sure you want to delete the folder \"{folderName}\"?\nAll notes inside it will be deleted.",
   "delete": "Delete",
   "noFolders": "No folders",
   "daysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",

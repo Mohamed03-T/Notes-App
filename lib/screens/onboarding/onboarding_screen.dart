@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../notes/notes_home.dart';
+import '../../widgets/app_logo.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -69,12 +70,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.star,
-                          size: 100,
-                          color: Theme.of(context).colorScheme.primary,
+                        // إضافة الشعار
+                        const AppLogo(
+                          size: 140, // زيادة الحجم
+                          showText: true,
+                          text: 'Notes App',
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
                         Text(
                           _pages[index]['title']!,
                           style: Theme.of(context).textTheme.headlineSmall,

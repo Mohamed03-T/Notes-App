@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/tokens.dart';
+import '../../widgets/app_logo.dart';
 
 // Class مساعد لبيانات الصفحات المرئية
 class _VisiblePagesData {
@@ -94,6 +95,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(
           children: [
+            // الشعار الصغير
+            const AppLogoSmall(size: 28),
+            const SizedBox(width: 12),
+            
             // الصفحات المرئية - تتوسع لملء المساحة المتاحة
             Expanded(
               child: SingleChildScrollView(
