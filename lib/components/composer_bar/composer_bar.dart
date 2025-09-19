@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../screens/notes/add_note_screen.dart';
 import '../../repositories/notes_repository.dart';
+import '../../core/layout/layout_helpers.dart';
+import '../../utils/responsive.dart';
 
 class ComposerBar extends StatefulWidget {
   final void Function(String)? onSend;
@@ -199,18 +201,19 @@ class ComposerBarState extends State<ComposerBar> {
     debugPrint('ComposerBar: build called, _hasText = $_hasText');
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.5, vertical: Responsive.hp(context, 1.2)),
         color: Colors.white,
         child: Row(
           children: [
-            IconButton(onPressed: () {}, icon: const Icon(Icons.photo)),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.mic)),
+            IconButton(onPressed: () {}, icon: Icon(Icons.photo, size: Layout.iconSize(context))),
+            IconButton(onPressed: () {}, icon: Icon(Icons.mic, size: Layout.iconSize(context))),
             Expanded(
               child: TextField(
                 controller: _controller,
-                decoration: const InputDecoration.collapsed(
+                decoration: InputDecoration.collapsed(
                   hintText: 'اكتب ملاحظة سريعة... (أو اضغط على أيقونة الكتابة للخيارات المتقدمة)',
                 ),
+                style: TextStyle(fontSize: Layout.bodyFont(context)),
                 onSubmitted: (text) {
                   if (text.trim().isNotEmpty) {
                     _handlePrimaryAction();
@@ -226,7 +229,7 @@ class ComposerBarState extends State<ComposerBar> {
                   debugPrint('ComposerBar: IconButton pressed');
                   _handlePrimaryAction();
                 },
-                icon: Icon(_hasText || _hasAttachments ? Icons.send : Icons.edit_note),
+                icon: Icon(_hasText || _hasAttachments ? Icons.send : Icons.edit_note, size: Layout.iconSize(context)),
               ),
             ),
           ],

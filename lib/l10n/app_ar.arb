@@ -288,4 +288,17 @@
   "@now": {
     "description": "الآن"
   }
+  ,
+  "splashWelcomeTitle": "مرحباً بك في تطبيق الملاحظات",
+  "@splashWelcomeTitle": {
+    "description": "العنوان الترحيبي في شاشة البداية"
+  },
+  "splashTagline": "نظّم أفكارك وملاحظاتك بسهولة",
+  "@splashTagline": {
+    "description": "الشرح القصير في شاشة البداية"
+  },
+  "splashLoading": "جاري التحميل...",
+  "@splashLoading": {
+    "description": "نص التحميل في شاشة البداية"
+  }
 }

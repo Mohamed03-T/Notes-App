@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import '../../generated/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/language_manager.dart';
+import '../../utils/responsive.dart';
+import '../../core/layout/layout_helpers.dart';
 import '../../widgets/app_logo.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
 import '../../repositories/notes_repository.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+// conditional import for web download helper
+import '../../utils/web_file_utils_stub.dart'
+  if (dart.library.html) '../../utils/web_file_utils_web.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -26,34 +33,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<bool> _writeBackupToFile(String json, {bool promptSave = false}) async {
     try {
       Directory? targetDir;
-      try {
-        // Prefer Downloads on platforms that support it
-        targetDir = await getDownloadsDirectory();
-      } catch (_) {
+      if (kIsWeb) {
+        // On web we won't use path_provider; handled later by webDownloadString
         targetDir = null;
+      } else {
+        try {
+          // Prefer Downloads on platforms that support it
+          targetDir = await getDownloadsDirectory();
+        } catch (_) {
+          // This can throw MissingPluginException if native plugin isn't registered
+          targetDir = null;
+        }
       }
 
       if (targetDir == null) {
-        // On Android, use external storage directory and place into Downloads
+        // On Android, try using external storage Downloads directory
         try {
-          final extDir = await getExternalStorageDirectory();
-          if (extDir != null) {
-            // Try to find a Downloads folder
-            final downloads = Directory('${extDir.parent.path}/Download');
-            if (await downloads.exists()) {
-              targetDir = downloads;
-            } else {
-              targetDir = extDir;
+          final downloadsDirs = await getExternalStorageDirectories(type: StorageDirectory.downloads);
+          if (downloadsDirs != null && downloadsDirs.isNotEmpty) {
+            targetDir = downloadsDirs.first;
+          } else {
+            final extDir = await getExternalStorageDirectory();
+            if (extDir != null) {
+              // Try to find a Downloads folder relative to extDir
+              final candidate = Directory('${extDir.path}/Download');
+              if (await candidate.exists()) {
+                targetDir = candidate;
+              } else {
+                targetDir = extDir;
+              }
             }
           }
-        } catch (_) {
-          targetDir = await getApplicationDocumentsDirectory();
+        } catch (e, st) {
+          debugPrint('Error resolving storage directory: $e (${e.runtimeType})');
+          debugPrint('$st');
+          if (e is MissingPluginException) {
+            // path_provider not registered — fallback
+            targetDir = Directory.systemTemp;
+          } else {
+            try {
+              targetDir = await getApplicationDocumentsDirectory();
+            } catch (e2, st2) {
+              debugPrint('Fallback application docs failed: $e2 (${e2.runtimeType})');
+              debugPrint('$st2');
+              targetDir = Directory.systemTemp;
+            }
+          }
         }
       }
 
       // Request storage permission on Android if writing outside app dir
       try {
-        if (Platform.isAndroid) {
+        if (!kIsWeb && Platform.isAndroid) {
           // Request standard storage permission
           final status = await Permission.storage.request();
           if (!status.isGranted) {
@@ -66,6 +97,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       final fileName = 'notes_backup_${DateTime.now().toIso8601String().replaceAll(':', '-')}.json';
+      if (kIsWeb) {
+        final ok = await webDownloadString(fileName, json);
+        if (ok) {
+          debugPrint('Backup downloaded in browser');
+        }
+        return ok;
+      }
+
       final file = File('${targetDir!.path}/$fileName');
       await file.create(recursive: true);
       await file.writeAsString(json);
@@ -73,7 +112,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       debugPrint('Backup saved to ${file.path}');
       return true;
     } catch (e) {
-      debugPrint('Failed to write backup: $e');
+      debugPrint('Failed to write backup: $e (${e.runtimeType})');
+      debugPrint(StackTrace.current.toString());
+      if (mounted) {
+        final msg = e is MissingPluginException
+            ? 'المكوّنات الأصلية غير مسجلة. أعد تشغيل التطبيق (full restart) ثم حاول مرة أخرى.'
+            : 'فشل في حفظ النسخة الاحتياطية: ${e.toString()}';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
       return false;
     }
   }
@@ -112,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           body: Container(
             color: Theme.of(context).scaffoldBackgroundColor,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(Layout.horizontalPadding(context)),
               children: [
                 // قسم المظهر
                 _buildSectionCard(
@@ -159,7 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: Layout.sectionSpacing(context)),
 
                 // قسم اللغة
                 _buildSectionCard(
@@ -189,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: Layout.sectionSpacing(context)),
 
                 // قسم الإشعارات
                 _buildSectionCard(
@@ -234,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: Layout.sectionSpacing(context)),
 
                 // قسم النسخ الاحتياطي
                 _buildSectionCard(
@@ -243,7 +292,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     _buildSwitchTile(
                       title: l10n.autoBackup,
-                      subtitle: _autoBackupEnabled ? 'النسخ الدوري مفعل' : l10n.autoBackupSubtitle,
+                      subtitle: _autoBackupEnabled
+                          ? (_lastAutoBackup != null ? 'آخر نسخة: ${_lastAutoBackup!.toLocal()}' : 'النسخ الدوري مفعل')
+                          : l10n.autoBackupSubtitle,
                       icon: Icons.backup,
                       value: _autoBackupEnabled,
                       onChanged: (val) async {
@@ -306,7 +357,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: Layout.sectionSpacing(context)),
 
                 // قسم حول التطبيق
                 _buildSectionCard(
@@ -338,7 +389,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: Responsive.hp(context, 2)),
 
                 // قسم معلومات التطبيق مع الشعار
                 _buildSectionCard(
@@ -347,41 +398,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     // الشعار مع معلومات التطبيق
                     Container(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          const AppLogo(
-                            size: 80,
-                            showText: true,
-                            text: 'Notes App',
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'تطبيق ملاحظات حديث وأنيق مع دعم المظهر الداكن والفاتح',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          padding: EdgeInsets.all(Layout.horizontalPadding(context)),
+                          child: Column(
                             children: [
-                              Icon(
-                                Icons.verified,
-                                color: Theme.of(context).primaryColor,
-                                size: 16,
+                              AppLogo(
+                                size: Responsive.wp(context, 18),
+                                showText: true,
+                                text: 'Notes App',
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(height: Layout.sectionSpacing(context)),
                               Text(
-                                'الإصدار 1.0.0',
-                                style: Theme.of(context).textTheme.bodySmall,
+                                'تطبيق ملاحظات حديث وأنيق مع دعم المظهر الداكن والفاتح',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  fontSize: Responsive.sp(context, 1.8),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: Responsive.hp(context, 1.5)),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.verified,
+                                    color: Theme.of(context).primaryColor,
+                                    size: Layout.iconSize(context),
+                                    ),
+                                    SizedBox(width: Layout.smallGap(context)),
+                                    Text(
+                                      'الإصدار 1.0.0',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: Layout.bodyFont(context)),
+                                    ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
                   ],
                 ),
 
@@ -425,22 +477,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(Layout.horizontalPadding(context)),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(Responsive.wp(context, 1.2)),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
+                  child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: Responsive.sp(context, 1.8)),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: Layout.smallGap(context)),
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    fontSize: Responsive.sp(context, 2.2),
                   ),
                 ),
               ],
@@ -459,29 +512,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
   }) {
     return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.4),
       leading: Container(
-        padding: const EdgeInsets.all(6),
+        padding: EdgeInsets.all(Responsive.wp(context, 1)),
         decoration: BoxDecoration(
           color: AppTheme.getTextSecondary(context).withOpacity(0.1),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Icon(
+          child: Icon(
           icon, 
           color: AppTheme.getTextSecondary(context),
-          size: 18,
+          size: Layout.iconSize(context),
         ),
       ),
       title: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium,
+  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: Layout.titleFont(context)),
       ),
       subtitle: Text(
         subtitle,
-        style: Theme.of(context).textTheme.bodySmall,
+  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: Layout.bodyFont(context)),
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,
-        size: 16,
+        size: Responsive.sp(context, 1.4),
         color: AppTheme.getTextSecondary(context),
       ),
       onTap: onTap,
@@ -496,29 +550,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required ValueChanged<bool> onChanged,
   }) {
     return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.4),
       leading: Container(
-        padding: const EdgeInsets.all(6),
+        padding: EdgeInsets.all(Responsive.wp(context, 1)),
         decoration: BoxDecoration(
           color: value 
             ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
             : AppTheme.getTextSecondary(context).withOpacity(0.1),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Icon(
+          child: Icon(
           icon, 
           color: value 
             ? Theme.of(context).colorScheme.primary
             : AppTheme.getTextSecondary(context),
-          size: 18,
+          size: Layout.iconSize(context),
         ),
       ),
       title: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: Layout.titleFont(context)),
       ),
       subtitle: Text(
         subtitle,
-        style: Theme.of(context).textTheme.bodySmall,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: Layout.bodyFont(context)),
       ),
       trailing: Switch(
         value: value,

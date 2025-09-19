@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import '../../models/folder_model.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/layout/layout_helpers.dart';
+import '../../utils/responsive.dart';
 
 class FolderCard extends StatefulWidget {
   final FolderModel folder;
@@ -100,7 +102,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
               _animationController.reverse();
             },
             child: Container(
-              margin: const EdgeInsets.all(8),
+              margin: EdgeInsets.all(Responsive.wp(context, 2)),
               decoration: BoxDecoration(
                 color: (widget.folder.backgroundColor ?? AppTheme.getCardColor(context))
                     .withOpacity(widget.isDragging ? 0.5 : 1.0),
@@ -118,7 +120,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                   // Header with folder name and count (uses folder's backgroundColor)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    padding: EdgeInsets.symmetric(vertical: Responsive.hp(context, 1.2), horizontal: Layout.horizontalPadding(context)),
                     decoration: BoxDecoration(
                       color: widget.folder.backgroundColor ?? AppTheme.getCardColor(context),
                       borderRadius: const BorderRadius.only(
@@ -134,20 +136,21 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppTheme.getTextPrimary(context),
+                              fontSize: Layout.titleFont(context),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (widget.folder.isPinned) ...[
-                          const SizedBox(width: 8),
+                          SizedBox(width: Layout.smallGap(context)),
                           Icon(
                             Icons.push_pin,
-                            size: 16,
+                            size: Layout.iconSize(context),
                             color: Theme.of(context).colorScheme.primary,
                           ),
                         ],
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: Responsive.wp(context, 2.2), vertical: Responsive.hp(context, 0.6)),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(16),
@@ -164,13 +167,13 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onPrimary,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: Layout.bodyFont(context),
                             ),
                           ),
                         ),
                         // Three-dot menu for folder actions
                         PopupMenuButton<String>(
-                          icon: Icon(Icons.more_vert, color: AppTheme.getTextSecondary(context)),
+                          icon: Icon(Icons.more_vert, color: AppTheme.getTextSecondary(context), size: Layout.iconSize(context)),
                           onSelected: (value) async {
                             switch (value) {
                               case 'pin':
@@ -208,7 +211,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                                         spacing: 8, runSpacing: 8,
                                         children: colors.map((c) => GestureDetector(
                                           onTap: () => Navigator.pop(ctx, c),
-                                          child: Container(width: 40, height: 40, decoration: BoxDecoration(color: c, shape: BoxShape.circle, border: widget.folder.backgroundColor == c ? Border.all(color: Colors.white, width: 2) : null)),
+                        child: Container(width: Responsive.wp(context, 8), height: Responsive.wp(context, 8), decoration: BoxDecoration(color: c, shape: BoxShape.circle, border: widget.folder.backgroundColor == c ? Border.all(color: Colors.white, width: 2) : null)),
                                         )).toList(),
                                       ),
                                     ),
@@ -246,14 +249,14 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                   // Preview content area  
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(4),
+                    padding: EdgeInsets.all(Responsive.wp(context, 1)),
                     child: hasNotes ? _buildNotesPreview() : _buildEmptyState(),
                   ),
                   
                   // Footer with timestamp
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.6, vertical: Responsive.hp(context, 1.0)),
                     decoration: BoxDecoration(
                       color: AppTheme.getDividerColor(context).withOpacity(0.3),
                       borderRadius: const BorderRadius.only(
@@ -265,20 +268,21 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                       children: [
                         Icon(
                           Icons.access_time_rounded,
-                          size: 14,
+                          size: Responsive.sp(context, 1.4),
                           color: AppTheme.getTextSecondary(context),
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: Layout.smallGap(context)),
                         Text(
                           timeAgo,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppTheme.getTextSecondary(context),
+                            fontSize: Layout.bodyFont(context),
                           ),
                         ),
                         const Spacer(),
                         Icon(
                           Icons.arrow_forward_ios_rounded,
-                          size: 12,
+                          size: Responsive.sp(context, 1.1),
                           color: AppTheme.getTextSecondary(context),
                         ),
                       ],

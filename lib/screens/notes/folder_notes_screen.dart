@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../repositories/notes_repository.dart';
 import '../../components/note_card/note_card.dart';
 import '../../components/composer_bar/composer_bar.dart';
+import '../../core/layout/layout_helpers.dart';
 
 /// شاشة عرض الملاحظات داخل مجلد معين
 /// زر الرجوع يخرج من الشاشة بضغطة واحدة
@@ -72,28 +73,42 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
       );
     }
     
+    final reserved = kToolbarHeight + MediaQuery.of(context).padding.top;
+    final avail = Layout.availableHeight(context, reservedHeight: reserved);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(folder.title),
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, size: Layout.iconSize(context) + 2),
           onPressed: () {
             Navigator.of(context).popUntil((route) => route.isFirst);
           },
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              children: folder.notes.map((n) => NoteCard(note: n)).toList(),
-            ),
+      body: SafeArea(
+        child: SizedBox(
+          height: avail,
+          child: Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.6),
+                  child: ListView(
+                    children: folder.notes.map((n) => Padding(
+                      padding: EdgeInsets.only(bottom: Layout.smallGap(context)),
+                      child: NoteCard(note: n),
+                    )).toList(),
+                  ),
+                ),
+              ),
+              ComposerBar(
+                onSend: _saveNote,
+              ),
+            ],
           ),
-          ComposerBar(
-            onSend: _saveNote,
-          ),
-        ],
+        ),
       ),
     );
   }

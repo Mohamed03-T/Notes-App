@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/layout/layout_helpers.dart';
+import '../../utils/responsive.dart';
 
 class PageCard extends StatelessWidget {
   final String title;
@@ -13,8 +15,9 @@ class PageCard extends StatelessWidget {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.borderRadius)),
       child: ListTile(
-        title: Text(title),
-        subtitle: Text('$foldersCount folders'),
+        contentPadding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.6, vertical: Responsive.hp(context, 1.2)),
+        title: Text(title, style: TextStyle(fontSize: Layout.titleFont(context))),
+        subtitle: Text('$foldersCount folders', style: TextStyle(fontSize: Layout.bodyFont(context) * 0.9)),
         onTap: onTap,
       ),
     );

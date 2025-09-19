@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/tokens.dart';
 import '../../widgets/app_logo.dart';
+import '../../core/layout/layout_helpers.dart';
+import '../../utils/responsive.dart';
 
 // Class مساعد لبيانات الصفحات المرئية
 class _VisiblePagesData {
@@ -39,11 +41,11 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     
-    // حساب المساحة المتاحة للصفحات
-    const double buttonSpacing = 8.0;
-    const double sideMargin = 16.0;
-    const double menuButtonWidth = 40.0; // عرض زر القائمة المنسدلة
-    const double moreButtonWidth = 40.0; // عرض زر المزيد الجديد
+  // حساب المساحة المتاحة للصفحات
+  final double buttonSpacing = Layout.smallGap(context);
+  final double sideMargin = Layout.horizontalPadding(context);
+  final double menuButtonWidth = Responsive.wp(context, 9); // عرض زر القائمة المنسدلة
+  final double moreButtonWidth = Responsive.wp(context, 9); // عرض زر المزيد الجديد
     
     // المساحة المتاحة للصفحات
     double availableWidth = screenWidth - (sideMargin * 2);
@@ -92,12 +94,12 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.2),
         child: Row(
           children: [
             // الشعار الصغير
-            const AppLogoSmall(size: 28),
-            const SizedBox(width: 12),
+            AppLogoSmall(size: Responsive.wp(context, 6)),
+            SizedBox(width: Layout.smallGap(context)),
             
             // الصفحات المرئية - تتوسع لملء المساحة المتاحة
             Expanded(
@@ -108,6 +110,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                   children: [
                     for (var i = 0; i < visiblePagesData.visiblePages.length; i++)
                       _buildPageButton(
+                        context,
                         visiblePagesData.visiblePages[i],
                         visiblePagesData.visibleIndices[i],
                         i == 0 ? 0 : buttonSpacing,
@@ -119,13 +122,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             
             // زر القائمة المنسدلة
             if (onAddPagePressed != null || onSettingsPressed != null) ...[
-              const SizedBox(width: buttonSpacing),
+              SizedBox(width: buttonSpacing),
               _buildMenuButton(context),
             ],
             
             // زر "المزيد" إذا كان هناك صفحات إضافية
             if (hiddenCount > 0) ...[
-              const SizedBox(width: buttonSpacing),
+              SizedBox(width: buttonSpacing),
               _buildMoreButton(hiddenCount),
             ],
           ],
@@ -202,7 +205,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildPageButton(String pageTitle, int pageIndex, double leftMargin) {
+  Widget _buildPageButton(BuildContext context, String pageTitle, int pageIndex, double leftMargin) {
     final isSelected = ((originalIndices != null && pageIndex < originalIndices!.length)
         ? (originalIndices![pageIndex] == currentPageIndex)
         : (pageIndex == currentPageIndex));
@@ -221,10 +224,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
           borderRadius: BorderRadius.circular(20),
           splashColor: Colors.blue.withOpacity(0.1),
           highlightColor: Colors.blue.withOpacity(0.05),
-          child: AnimatedContainer(
+            child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: Responsive.wp(context, 4), vertical: Responsive.hp(context, 1.2)),
             decoration: BoxDecoration(
               gradient: isSelected
                   ? LinearGradient(
@@ -280,17 +283,17 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 if (isSelected) ...[
                   Icon(
                     Icons.radio_button_checked,
-                    size: 14,
+                    size: Responsive.sp(context, 1.4),
                     color: Colors.white,
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: Layout.smallGap(context)),
                 ],
                 Text(
                   pageTitle,
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.grey.shade700,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    fontSize: 13,
+                    fontSize: Responsive.sp(context, 1.6),
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -367,8 +370,8 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           child: Container(
-            width: 40,
-            height: 40,
+            width: Responsive.wp(context, 9),
+            height: Responsive.wp(context, 9),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -390,7 +393,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             child: Icon(
               Icons.more_vert,
-              size: 20,
+              size: Layout.iconSize(context),
               color: Colors.white,
             ),
           ),

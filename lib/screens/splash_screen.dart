@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/app_logo.dart';
+import '../core/layout/layout_helpers.dart';
+import '../utils/responsive.dart';
+import 'package:note_app/l10n/app_localizations.dart';
 import 'notes/notes_home.dart';
 import 'onboarding/onboarding_screen.dart';
 
@@ -111,17 +114,16 @@ class _SplashScreenState extends State<SplashScreen>
                     scale: _scaleAnimation.value,
                     child: FadeTransition(
                       opacity: _fadeAnimation,
-                      child: const AppLogo(
-                        size: 150,
+                      child: AppLogo(
+                        size: Responsive.wp(context, 34),
                         showText: true,
-                        text: 'Notes App',
+                        text: AppLocalizations.of(context)!.appTitle,
                       ),
                     ),
                   );
                 },
               ),
-              
-              const SizedBox(height: 24),
+              SizedBox(height: Layout.sectionSpacing(context)),
               
               // نص ترحيبي مع أنيميشن
               AnimatedBuilder(
@@ -129,9 +131,10 @@ class _SplashScreenState extends State<SplashScreen>
                 builder: (context, child) {
                   return FadeTransition(
                     opacity: _fadeAnimation,
-                    child: Text(
-                      'مرحباً بك في تطبيق الملاحظات',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      child: Text(
+                      AppLocalizations.of(context)!.splashWelcomeTitle,
+                      style: TextStyle(
+                        fontSize: Responsive.sp(context, 3.0),
                         color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.w600,
                       ),
@@ -149,9 +152,10 @@ class _SplashScreenState extends State<SplashScreen>
                 builder: (context, child) {
                   return FadeTransition(
                     opacity: _fadeAnimation,
-                    child: Text(
-                      'نظّم أفكارك وملاحظاتك بسهولة',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      child: Text(
+                      AppLocalizations.of(context)!.splashTagline,
+                      style: TextStyle(
+                        fontSize: Layout.bodyFont(context),
                         color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
                       ),
                       textAlign: TextAlign.center,
@@ -170,15 +174,26 @@ class _SplashScreenState extends State<SplashScreen>
                   return FadeTransition(
                     opacity: _fadeAnimation,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 48.0),
+                      padding: EdgeInsets.only(bottom: Responsive.hp(context, 6)),
                       child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).primaryColor.withOpacity(0.6),
-                          ),
+                        width: Responsive.wp(context, 6),
+                        height: Responsive.wp(context, 6),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: Responsive.wp(context, 6),
+                              height: Responsive.wp(context, 6),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Theme.of(context).primaryColor.withOpacity(0.6),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: Layout.smallGap(context) * 0.6),
+                            Text(AppLocalizations.of(context)!.splashLoading, style: TextStyle(fontSize: Layout.bodyFont(context))),
+                          ],
                         ),
                       ),
                     ),

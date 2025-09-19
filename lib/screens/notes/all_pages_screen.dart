@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../repositories/notes_repository.dart';
 import 'add_page_screen.dart';
+import '../../core/layout/layout_helpers.dart';
+import '../../utils/responsive.dart';
 
 class AllPagesScreen extends StatefulWidget {
   const AllPagesScreen({Key? key}) : super(key: key);
@@ -42,14 +44,14 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
       body: Container(
         color: Colors.grey.shade50,
         child: ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(Layout.horizontalPadding(context)),
           itemCount: sortedPages.length,
           itemBuilder: (context, index) {
             final page = sortedPages[index];
             final originalIndex = allPages.indexWhere((p) => p.id == page.id);
             
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: EdgeInsets.only(bottom: Layout.sectionSpacing(context) * 0.6),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -63,10 +65,10 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                 ],
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
+                contentPadding: EdgeInsets.all(Layout.horizontalPadding(context) * 0.6),
                 leading: Container(
-                  width: 48,
-                  height: 48,
+                  width: Responsive.wp(context, 10),
+                  height: Responsive.wp(context, 10),
                   decoration: BoxDecoration(
                     color: _getPageColor(index),
                     borderRadius: BorderRadius.circular(12),
@@ -74,7 +76,7 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                   child: Icon(
                     _getPageIcon(page.title),
                     color: Colors.white,
-                    size: 24,
+                    size: Responsive.sp(context, 2.4),
                   ),
                 ),
                 title: Row(
@@ -82,15 +84,15 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                     Expanded(
                       child: Text(
                         page.title,
-                        style: const TextStyle(
-                          fontSize: 18,
+                        style: TextStyle(
+                          fontSize: Responsive.sp(context, 2.6),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     if (index == 0)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: Responsive.wp(context, 2.2), vertical: Responsive.hp(context, 0.8)),
                         decoration: BoxDecoration(
                           color: Colors.green.shade100,
                           borderRadius: BorderRadius.circular(12),
@@ -99,7 +101,7 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                           'الأحدث',
                           style: TextStyle(
                             color: Colors.green.shade700,
-                            fontSize: 10,
+                            fontSize: Layout.bodyFont(context) * 0.9,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -109,20 +111,20 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 4),
+                    SizedBox(height: Layout.smallGap(context) * 0.4),
                     Text(
                       '${page.folders.length} ${page.folders.length == 1 ? 'مجلد' : 'مجلدات'}',
                       style: TextStyle(
                         color: Colors.grey.shade600,
-                        fontSize: 14,
+                        fontSize: Layout.bodyFont(context),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: Layout.smallGap(context) * 0.4),
                     Text(
                       'آخر تحديث: ${_getTimeAgo(page.folders)}',
                       style: TextStyle(
                         color: Colors.grey.shade500,
-                        fontSize: 12,
+                        fontSize: Layout.bodyFont(context) * 0.9,
                       ),
                     ),
                   ],
@@ -130,7 +132,7 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                 trailing: Icon(
                   Icons.arrow_forward_ios,
                   color: Colors.grey.shade400,
-                  size: 16,
+                  size: Responsive.sp(context, 1.6),
                 ),
                 onTap: () {
                   Navigator.pop(context, originalIndex);

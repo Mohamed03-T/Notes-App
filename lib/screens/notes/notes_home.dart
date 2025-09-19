@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../generated/l10n/app_localizations.dart';
 import '../../components/top_bar/top_bar.dart';
+import '../../core/layout/layout_helpers.dart';
+import '../../utils/responsive.dart';
 import '../../repositories/notes_repository.dart';
 import '../../components/folder_card/folder_card.dart';
 import '../../models/folder_model.dart';
@@ -124,18 +126,18 @@ class _NotesHomeState extends State<NotesHome> {
               Container(
                 width: 40,
                 height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 10),
+                margin: EdgeInsets.symmetric(vertical: Layout.smallGap(context) * 0.8),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(Layout.horizontalPadding(context)),
                 child: Text(
                   '${l10n.manageFolder} ${folder.title}',
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: TextStyle(
+                    fontSize: Responsive.sp(context, 2.6),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -319,10 +321,10 @@ class _NotesHomeState extends State<NotesHome> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(),
-              SizedBox(height: 16),
+              SizedBox(height: Layout.sectionSpacing(context) / 2),
               Text(
                 l10n.loadingData,
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: Layout.bodyFont(context)),
               ),
             ],
           ),
@@ -376,28 +378,28 @@ class _NotesHomeState extends State<NotesHome> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const AppLogo(
-                size: 150, // زيادة الحجم
+              AppLogo(
+                size: Responsive.wp(context, 36),
                 showText: false,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: Layout.sectionSpacing(context)),
               Text(
                 l10n.noPagesYet,
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: Responsive.sp(context, 3.6),
                   fontWeight: FontWeight.bold,
                   color: Colors.grey.shade700,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: Layout.smallGap(context)),
               Text(
                 l10n.createFirstPage,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: Layout.bodyFont(context),
                   color: Colors.grey.shade500,
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: Layout.sectionSpacing(context) * 1.5),
               ElevatedButton.icon(
                 onPressed: () async {
                   final result = await Navigator.push<String>(
@@ -420,7 +422,7 @@ class _NotesHomeState extends State<NotesHome> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: Responsive.wp(context, 6), vertical: Responsive.hp(context, 1.5)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -478,24 +480,24 @@ class _NotesHomeState extends State<NotesHome> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const AppLogo(
-                    size: 120, // زيادة الحجم
+                  AppLogo(
+                    size: Responsive.wp(context, 36),
                     showText: false,
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: Layout.sectionSpacing(context)),
                   Text(
                     'لا توجد مجلدات بعد',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: Responsive.sp(context, 3.0),
                       fontWeight: FontWeight.bold,
                       color: Colors.grey.shade700,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: Layout.smallGap(context)),
                   Text(
                     'انقر على + لإضافة مجلد جديد',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: Layout.bodyFont(context),
                       color: Colors.grey.shade500,
                     ),
                   ),
@@ -503,9 +505,9 @@ class _NotesHomeState extends State<NotesHome> {
               ),
             )
           : GridView.count(
-          crossAxisCount: 2,
-          padding: const EdgeInsets.all(12),
-          childAspectRatio: 0.85, // تعديل النسبة لإعطاء مساحة أكبر للمعاينة
+          crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : 2,
+          padding: EdgeInsets.all(Layout.horizontalPadding(context)),
+          childAspectRatio: MediaQuery.of(context).size.width > 800 ? 0.95 : 0.85,
             children: folderList.map((f) {
               final targetIndex = folderList.indexOf(f);
               return DragTarget<FolderModel>(
@@ -539,14 +541,14 @@ class _NotesHomeState extends State<NotesHome> {
                     // إزالة dragAnchorStrategy لاستخدام القيمة الافتراضية
                     onDragStarted: () => setState(() => _draggingFolder = f),
                     onDragEnd: (_) => setState(() => _draggingFolder = null),
-                    feedback: Material(
+                          feedback: Material(
                       elevation: 12.0,
                       color: Colors.transparent,
                       child: Transform.scale(
-                        scale: 1.05, // تقليل التكبير
+                        scale: 1.03,
                         child: Container(
-                          width: 180, // زيادة العرض
-                          height: 180, // إضافة ارتفاع محدد
+                          width: Responsive.wp(context, 44),
+                          height: Responsive.hp(context, 30),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
@@ -559,7 +561,7 @@ class _NotesHomeState extends State<NotesHome> {
                             ],
                           ),
                           child: Container(
-                            margin: const EdgeInsets.all(8),
+                            margin: EdgeInsets.all(Responsive.wp(context, 2)),
                             decoration: BoxDecoration(
                               color: (f.backgroundColor ?? Colors.blue.shade100),
                               borderRadius: BorderRadius.circular(16),
@@ -573,7 +575,7 @@ class _NotesHomeState extends State<NotesHome> {
                               children: [
                                 Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
+                                  padding: EdgeInsets.all(Responsive.wp(context, 3)),
                                   decoration: BoxDecoration(
                                     color: Colors.blue.shade200,
                                     borderRadius: const BorderRadius.only(
@@ -583,9 +585,9 @@ class _NotesHomeState extends State<NotesHome> {
                                   ),
                                   child: Text(
                                     f.title,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      fontSize: Responsive.sp(context, 1.9),
                                       color: Colors.white,
                                     ),
                                     maxLines: 1,
@@ -596,7 +598,7 @@ class _NotesHomeState extends State<NotesHome> {
                                   child: Center(
                                     child: Icon(
                                       Icons.folder,
-                                      size: 48,
+                                      size: Responsive.sp(context, 4.0),
                                       color: Colors.blue.shade300,
                                     ),
                                   ),
@@ -608,25 +610,25 @@ class _NotesHomeState extends State<NotesHome> {
                       ),
                     ),
                     childWhenDragging: Container(
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.blue.withOpacity(0.5),
-                          width: 2,
-                          style: BorderStyle.solid,
+                        margin: EdgeInsets.all(Responsive.wp(context, 2)),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.5),
+                            width: 2,
+                            style: BorderStyle.solid,
+                          ),
+                          color: Colors.blue.withOpacity(0.1),
                         ),
-                        color: Colors.blue.withOpacity(0.1),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.drag_indicator,
-                          size: 48,
-                          color: Colors.blue,
+                        child: Center(
+                          child: Icon(
+                            Icons.drag_indicator,
+                            size: Responsive.sp(context, 3.6),
+                            color: Colors.blue,
+                          ),
                         ),
                       ),
-                    ),
-                    child: FolderCard(
+            child: FolderCard(
                       folder: f,
                       isDragging: isDragging,
                       onTap: () async {
@@ -697,7 +699,7 @@ class _NotesHomeState extends State<NotesHome> {
         },
         backgroundColor: Colors.blue,
         tooltip: l10n.addNewFolder,
-        child: const Icon(Icons.create_new_folder, color: Colors.white),
+        child: Icon(Icons.create_new_folder, color: Colors.white, size: Layout.iconSize(context) + 6),
       ),
     );
   }

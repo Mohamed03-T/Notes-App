@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../notes/notes_home.dart';
 import '../../widgets/app_logo.dart';
+import '../../core/layout/layout_helpers.dart';
+import '../../utils/responsive.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -66,26 +68,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (i) => setState(() => _currentIndex = i),
                 itemBuilder: (_, index) {
                   return Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: EdgeInsets.all(Layout.horizontalPadding(context)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // إضافة الشعار
-                        const AppLogo(
-                          size: 140, // زيادة الحجم
+                        AppLogo(
+                          size: Responsive.wp(context, 34),
                           showText: true,
                           text: 'Notes App',
                         ),
-                        const SizedBox(height: 32),
+                        SizedBox(height: Layout.sectionSpacing(context) * 1.2),
                         Text(
                           _pages[index]['title']!,
-                          style: Theme.of(context).textTheme.headlineSmall,
+                          style: TextStyle(fontSize: Responsive.sp(context, 2.8), fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: Layout.smallGap(context) * 1.2),
                         Text(
                           _pages[index]['description']!,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: TextStyle(fontSize: Layout.bodyFont(context)),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -95,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context), vertical: Layout.sectionSpacing(context)),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -113,9 +115,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     children: List.generate(
                       _pages.length,
                       (index) => Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentIndex == index ? 12 : 8,
-                        height: _currentIndex == index ? 12 : 8,
+                        margin: EdgeInsets.symmetric(horizontal: Responsive.wp(context, 0.6)),
+                        width: _currentIndex == index ? Responsive.wp(context, 3.2) : Responsive.wp(context, 2.4),
+                        height: _currentIndex == index ? Responsive.wp(context, 3.2) : Responsive.wp(context, 2.4),
                         decoration: BoxDecoration(
                           color: _currentIndex == index
                               ? Theme.of(context).colorScheme.primary

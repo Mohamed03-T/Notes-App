@@ -67,4 +67,17 @@
   "hoursAgo": "{count, plural, =1{1 hour ago} other{{count} hours ago}}",
   "minutesAgo": "{count, plural, =1{1 minute ago} other{{count} minutes ago}}",
   "now": "Now"
+  ,
+  "splashWelcomeTitle": "Welcome to Notes App",
+  "@splashWelcomeTitle": {
+    "description": "Main welcome title on the splash screen"
+  },
+  "splashTagline": "Organize your ideas and notes easily",
+  "@splashTagline": {
+    "description": "Short tagline on the splash screen"
+  },
+  "splashLoading": "Loading...",
+  "@splashLoading": {
+    "description": "Loading label shown on the splash screen"
+  }
 }
