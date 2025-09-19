@@ -3,6 +3,12 @@ import '../../generated/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/language_manager.dart';
 import '../../widgets/app_logo.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:async';
+import 'package:permission_handler/permission_handler.dart';
+import '../../repositories/notes_repository.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,6 +19,64 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
+  bool _autoBackupEnabled = false;
+  DateTime? _lastAutoBackup;
+  Timer? _autoBackupTimer;
+
+  Future<bool> _writeBackupToFile(String json, {bool promptSave = false}) async {
+    try {
+      Directory? targetDir;
+      try {
+        // Prefer Downloads on platforms that support it
+        targetDir = await getDownloadsDirectory();
+      } catch (_) {
+        targetDir = null;
+      }
+
+      if (targetDir == null) {
+        // On Android, use external storage directory and place into Downloads
+        try {
+          final extDir = await getExternalStorageDirectory();
+          if (extDir != null) {
+            // Try to find a Downloads folder
+            final downloads = Directory('${extDir.parent.path}/Download');
+            if (await downloads.exists()) {
+              targetDir = downloads;
+            } else {
+              targetDir = extDir;
+            }
+          }
+        } catch (_) {
+          targetDir = await getApplicationDocumentsDirectory();
+        }
+      }
+
+      // Request storage permission on Android if writing outside app dir
+      try {
+        if (Platform.isAndroid) {
+          // Request standard storage permission
+          final status = await Permission.storage.request();
+          if (!status.isGranted) {
+            debugPrint('Storage permission denied');
+            return false;
+          }
+        }
+      } catch (e) {
+        debugPrint('Permission request failed: $e');
+      }
+
+      final fileName = 'notes_backup_${DateTime.now().toIso8601String().replaceAll(':', '-')}.json';
+      final file = File('${targetDir!.path}/$fileName');
+      await file.create(recursive: true);
+      await file.writeAsString(json);
+
+      debugPrint('Backup saved to ${file.path}');
+      return true;
+    } catch (e) {
+      debugPrint('Failed to write backup: $e');
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -177,31 +241,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: l10n.backupAndSync,
                   icon: Icons.cloud_sync,
                   children: [
-                    _buildListTile(
+                    _buildSwitchTile(
                       title: l10n.autoBackup,
-                      subtitle: l10n.autoBackupSubtitle,
+                      subtitle: _autoBackupEnabled ? 'النسخ الدوري مفعل' : l10n.autoBackupSubtitle,
                       icon: Icons.backup,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('سيتم إضافة خيارات النسخ الاحتياطي قريباً'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                      value: _autoBackupEnabled,
+                      onChanged: (val) async {
+                        setState(() => _autoBackupEnabled = val);
+                        if (val) {
+                          // Start a simple periodic timer (runs while app is in memory)
+                          _autoBackupTimer = Timer.periodic(const Duration(hours: 24), (_) async {
+                            final repo = await NotesRepository.instance;
+                            final json = await repo.exportBackupJson();
+                            await _writeBackupToFile(json);
+                            setState(() { _lastAutoBackup = DateTime.now(); });
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تفعيل النسخ الدوري (يعمل أثناء تشغيل التطبيق)'), behavior: SnackBarBehavior.floating));
+                        } else {
+                          _autoBackupTimer?.cancel();
+                          _autoBackupTimer = null;
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إيقاف النسخ الدوري'), behavior: SnackBarBehavior.floating));
+                        }
                       },
                     ),
                     const Divider(height: 1),
                     _buildListTile(
-                      title: 'استعادة البيانات',
-                      subtitle: 'استرداد من نسخة احتياطية',
-                      icon: Icons.restore,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('سيتم إضافة خيارات الاستعادة قريباً'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                      title: 'تصدير النسخة الاحتياطية',
+                      subtitle: 'حفظ ملف JSON للنسخة الاحتياطية',
+                      icon: Icons.download,
+                      onTap: () async {
+                        final repo = await NotesRepository.instance;
+                        final json = await repo.exportBackupJson();
+                        final saved = await _writeBackupToFile(json, promptSave: true);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(saved ? 'تم حفظ النسخة الاحتياطية' : 'فشل في حفظ النسخة')));
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _buildListTile(
+                      title: 'استيراد النسخة الاحتياطية',
+                      subtitle: 'اختر ملف JSON لاستيراده',
+                      icon: Icons.upload_file,
+                      onTap: () async {
+                        final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
+                        if (result != null && result.files.single.path != null) {
+                          final file = File(result.files.single.path!);
+                          final content = await file.readAsString();
+                          final repo = await NotesRepository.instance;
+                          final ok = await repo.importBackupJson(content);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'تم استيراد النسخة الاحتياطية' : 'فشل في استيراد الملف')));
+                        }
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _buildListTile(
+                      title: 'استعادة من المفتاح الداخلي',
+                      subtitle: 'استعادة من backup_notes_v2',
+                      icon: Icons.restore_from_trash,
+                      onTap: () async {
+                        final repo = await NotesRepository.instance;
+                        final ok = await repo.restoreFromPrefsBackup();
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'تمت الاستعادة من المفتاح الداخلي' : 'لا توجد نسخة احتياطية داخلية')));
                       },
                     ),
                   ],
@@ -293,6 +392,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       },
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Could load persisted auto-backup setting in future
+  }
+
+  @override
+  void dispose() {
+    _autoBackupTimer?.cancel();
+    super.dispose();
   }
 
   Widget _buildSectionCard({

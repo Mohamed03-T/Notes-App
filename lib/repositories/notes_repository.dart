@@ -22,6 +22,7 @@ class NotesRepository {
   
   // مفاتيح التخزين مع إصدارات
   static const String _notesKey = 'saved_notes_v2'; // تحديث الإصدار
+  static const String _pagesKey = 'saved_pages_v1';
   static const String _versionKey = 'data_version';
   static const String _backupKey = 'backup_notes_v2';
   static const int _currentDataVersion = 2; // الإصدار الحالي للبيانات
@@ -45,7 +46,9 @@ class NotesRepository {
     if (!_isInitialized) {
       _seed();
       await _checkAndMigrateData(); // تحقق من الإصدار والترحيل
-      await _loadSavedNotes();
+  // Load pages structure first so notes can attach to folders
+  await _loadPages();
+  await _loadSavedNotes();
       _isInitialized = true;
     }
   }
@@ -146,12 +149,23 @@ class NotesRepository {
           debugPrint('📝 تحميل ملاحظة: ${note.content} إلى المجلد: $folderId');
           
           var folder = getFolder(pageId, folderId);
-          
-          // إذا لم يجد المجلد أو الصفحة، تجاهل الملاحظة
+
+          // إذا لم يجد المجلد أو الصفحة، حاول إنشائها تلقائياً بدلاً من تجاهل الملاحظة
           if (folder == null) {
-            debugPrint('⚠️ تجاهل الملاحظة لأن المجلد الأصلي غير موجود: pageId=$pageId, folderId=$folderId');
-            debugPrint('📝 محتوى الملاحظة المتجاهلة: ${note.content}');
-            continue;
+            debugPrint('⚠️ المجلد/الصفحة غير موجودين: إنشاء تلقائي pageId=$pageId, folderId=$folderId');
+            // Ensure page exists
+            var page = getPage(pageId);
+            if (page == null) {
+              // Create a page with the provided id
+              page = PageModel(id: pageId, title: 'صفحة', folders: []);
+              _pages.add(page);
+            }
+            // Create folder with given id
+            final newFolder = FolderModel(id: folderId, title: 'مجلد', notes: [], updatedAt: DateTime.now());
+            page.folders.add(newFolder);
+            folder = newFolder;
+            // Persist the updated pages/folders structure
+            _savePages();
           }
           
           if (!folder.notes.any((n) => n.id == note.id)) {
@@ -249,8 +263,14 @@ class NotesRepository {
       return;
     }
 
-    // لا توجد بيانات افتراضية - التطبيق يبدأ فارغاً
-    debugPrint('📋 التطبيق يبدأ بدون بيانات افتراضية');
+  // Ensure at least one default page and folder exist so legacy notes (p1/f1) have a target
+  debugPrint('📋 لا توجد صفحات، إنشاء صفحة ومجلد افتراضي');
+  final defaultPage = PageModel(id: 'p1', title: 'الصفحة الرئيسية', folders: []);
+  final defaultFolder = FolderModel(id: 'f1', title: 'عام', notes: [], updatedAt: DateTime.now());
+  defaultPage.folders.add(defaultFolder);
+  _pages.add(defaultPage);
+  // Persist the created default structure
+  _savePages();
   }
 
   List<PageModel> getPages() => _pages;
@@ -302,6 +322,8 @@ class NotesRepository {
     );
     _pages.add(newPage);
     debugPrint('📄 تم إضافة صفحة جديدة: $title (ID: $id)');
+  // persist pages
+  _savePages();
     return id;
   }
 
@@ -319,6 +341,8 @@ class NotesRepository {
     
     page.folders.add(newFolder);
     debugPrint('📁 تم إضافة مجلد جديد: $folderTitle في الصفحة: ${page.title} (ID: $folderId)');
+  // persist pages (folders changed)
+  _savePages();
     return folderId;
   }
   
@@ -340,6 +364,8 @@ class NotesRepository {
         debugPrint('✅ تم حفظ ترتيب المجلدات للصفحة: $pageId');
         // أيضاً احفظ آخر وقت تحديث للترتيب
         await _safeSave('folder_order_timestamp_$pageId', DateTime.now().millisecondsSinceEpoch.toString());
+  // persist pages order too
+  _savePages();
       } else {
         throw Exception('فشل في حفظ ترتيب المجلدات');
       }
@@ -358,6 +384,7 @@ class NotesRepository {
       page.folders.removeWhere((f) => f.id == folderId);
       _hasNewChanges = true;
       debugPrint('🗑️ تم حذف المجلد: $folderId من الصفحة: ${page.title}');
+  _savePages();
     } catch (e) {
       debugPrint('❌ خطأ عند حذف المجلد: $e');
     }
@@ -391,10 +418,13 @@ class NotesRepository {
       final currentNotes = prefs.getStringList(_notesKey) ?? [];
       debugPrint('NotesRepository: current notes count = ${currentNotes.length}');
       
+      // Save under default page/folder p1/f1 to ensure discoverability
       final noteData = {
         'id': id,
         'content': content,
         'type': type,
+        'pageId': 'p1',
+        'folderId': 'f1',
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       };
       debugPrint('NotesRepository: created noteData = $noteData');
@@ -413,6 +443,12 @@ class NotesRepository {
         debugPrint('NotesRepository: added to in-memory folder, new folder notes count = ${folder.notes.length}');
       } else {
         debugPrint('NotesRepository: WARNING - folder not found');
+        // If default folder missing, create it to avoid dropped notes
+        final page = getPage('p1') ?? PageModel(id: 'p1', title: 'الصفحة الرئيسية', folders: []);
+        if (! _pages.contains(page)) _pages.add(page);
+        final created = FolderModel(id: 'f1', title: 'عام', notes: [newNote], updatedAt: DateTime.now());
+        page.folders.add(created);
+        _savePages();
       }
       
       debugPrint('NotesRepository: saveNoteSimple returning true');
@@ -564,6 +600,72 @@ class NotesRepository {
     }
   }
 
+  // Persist pages and folders structure (notes kept in _notesKey)
+  Future<void> _savePages() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pagesData = _pages.map((p) {
+        return jsonEncode({
+          'id': p.id,
+          'title': p.title,
+          'folders': p.folders.map((f) => {
+            'id': f.id,
+            'title': f.title,
+            'updatedAt': f.updatedAt.millisecondsSinceEpoch,
+            'isPinned': f.isPinned,
+          }).toList(),
+        });
+      }).toList();
+
+      await prefs.setStringList(_pagesKey, pagesData);
+      debugPrint('✅ تم حفظ بنية الصفحات/المجلدات ($_pagesKey)');
+    } catch (e) {
+      debugPrint('❌ فشل في حفظ بنية الصفحات: $e');
+    }
+  }
+
+  Future<void> _loadPages() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pagesData = prefs.getStringList(_pagesKey) ?? [];
+      if (pagesData.isEmpty) {
+        debugPrint('📄 لا توجد بنية صفحات محفوظة');
+        return;
+      }
+
+      _pages.clear();
+      for (final pStr in pagesData) {
+        try {
+          final p = jsonDecode(pStr);
+          final page = PageModel(id: p['id'], title: p['title'], folders: []);
+          final folders = (p['folders'] as List<dynamic>? ) ?? [];
+          for (final f in folders) {
+            final folder = FolderModel(
+              id: f['id'],
+              title: f['title'],
+              notes: [],
+              updatedAt: DateTime.fromMillisecondsSinceEpoch(f['updatedAt'] ?? DateTime.now().millisecondsSinceEpoch),
+              isPinned: f['isPinned'] ?? false,
+            );
+            page.folders.add(folder);
+          }
+          _pages.add(page);
+        } catch (e) {
+          debugPrint('⚠️ تخطي صفحة تالفة في التحميل: $e');
+        }
+      }
+
+      // Ensure default exists
+      if (_pages.isEmpty) {
+        _seed();
+      }
+
+      debugPrint('✅ تم تحميل بنية الصفحات: ${_pages.length} صفحة');
+    } catch (e) {
+      debugPrint('❌ فشل في تحميل بنية الصفحات: $e');
+    }
+  }
+
   // استرداد البيانات من النسخة الاحتياطية
   Future<bool> restoreFromBackup() async {
     try {
@@ -580,6 +682,95 @@ class NotesRepository {
       }
     } catch (e) {
       debugPrint('❌ فشل في استرداد النسخة الاحتياطية: $e');
+      return false;
+    }
+  }
+
+  // Export full backup (pages structure + notes) as JSON string
+  Future<String> exportBackupJson() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final notes = prefs.getStringList(_notesKey) ?? [];
+      final pages = _pages.map((p) => {
+        'id': p.id,
+        'title': p.title,
+        'folders': p.folders.map((f) => {
+          'id': f.id,
+          'title': f.title,
+          'updatedAt': f.updatedAt.millisecondsSinceEpoch,
+          'isPinned': f.isPinned,
+        }).toList(),
+      }).toList();
+
+      final exportData = {
+        'version': _currentDataVersion,
+        'pages': pages,
+        'notes': notes,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+      return jsonEncode(exportData);
+    } catch (e) {
+      debugPrint('❌ فشل في إنشاء JSON للنسخة الاحتياطية: $e');
+      rethrow;
+    }
+  }
+
+  // Import backup JSON string (overwrites current notes/pages)
+  Future<bool> importBackupJson(String jsonStr) async {
+    try {
+      final data = jsonDecode(jsonStr);
+      final prefs = await SharedPreferences.getInstance();
+
+      // Replace notes
+      final List<dynamic> notesList = data['notes'] ?? [];
+      final notesStrings = notesList.map((e) => e.toString()).toList();
+      await prefs.setStringList(_notesKey, notesStrings);
+
+      // Replace pages
+      final List<dynamic> pagesList = data['pages'] ?? [];
+      _pages.clear();
+      for (final p in pagesList) {
+        final page = PageModel(id: p['id'], title: p['title'], folders: []);
+        final folders = (p['folders'] as List<dynamic>?) ?? [];
+        for (final f in folders) {
+          final folder = FolderModel(
+            id: f['id'],
+            title: f['title'],
+            notes: [],
+            updatedAt: DateTime.fromMillisecondsSinceEpoch(f['updatedAt'] ?? DateTime.now().millisecondsSinceEpoch),
+            isPinned: f['isPinned'] ?? false,
+          );
+          page.folders.add(folder);
+        }
+        _pages.add(page);
+      }
+
+      // persist pages
+      await _savePages();
+
+      // reload notes into memory structure
+      await refreshData();
+      debugPrint('✅ تم استيراد النسخة الاحتياطية من JSON');
+      return true;
+    } catch (e) {
+      debugPrint('❌ فشل في استيراد النسخة الاحتياطية من JSON: $e');
+      return false;
+    }
+  }
+
+  // Restore from prefs backup key (backup_notes_v2)
+  Future<bool> restoreFromPrefsBackup() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final backupData = prefs.getStringList(_backupKey);
+      if (backupData == null || backupData.isEmpty) return false;
+
+      await prefs.setStringList(_notesKey, backupData);
+      await refreshData();
+      debugPrint('✅ تم استعادة الملاحظات من المفتاح $_backupKey');
+      return true;
+    } catch (e) {
+      debugPrint('❌ فشل في استعادة من المفتاح $_backupKey: $e');
       return false;
     }
   }

@@ -15,6 +15,9 @@ dependencies:
   uuid: ^3.0.6
   shared_preferences: ^2.0.15
   reorderables: ^0.4.2
+  path_provider: ^2.0.14
+  file_picker: ^5.2.5
+  permission_handler: ^10.4.0
 
 dev_dependencies:
   flutter_test:
