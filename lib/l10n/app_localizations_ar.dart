@@ -243,5 +243,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get splashLoading => 'جاري التحميل...';
+  
+  @override
+  String get onboardingPage1Title => 'تحكم كامل';
+  @override
+  String get onboardingPage1Description => 'قم بإنشاء وتنظيم ملاحظاتك بكل سهولة داخل صفحات ومجلدات.';
+  @override
+  String get onboardingPage2Title => 'واجهة بسيطة';
+  @override
+  String get onboardingPage2Description => 'استمتع بواجهة مستخدم نظيفة وسهلة الاستخدام.';
+  @override
+  String get onboardingPage3Title => 'تخصيص المظهر';
+  @override
+  String get onboardingPage3Description => 'اختر بين الوضع الفاتح والداكن حسب رغبتك.';
+  @override
+  String get onboardingPage4Title => 'عمل دون إنترنت';
+  @override
+  String get onboardingPage4Description => 'التطبيق يعمل دون اتصال بالإنترنت ويخزن ملاحظاتك محلياً لضمان خصوصية عالية.';
+  @override
+  String get onboardingPage5Title => 'اللغات المتوفرة';
+  @override
+  String get onboardingPage5Description => 'العربية، الفرنسية، والإنجليزية لتجربة أكثر سهولة ومرونة.';
+  @override
+  String get onboardingPage6Title => 'النسخ والاستعادة';
+  @override
+  String get onboardingPage6Description => 'تتوفر تحديثات مستقبلية لنسخ البيانات واستعادتها، وإذا حُذف التطبيق دون نسخ احتياطي ستُفقد الملاحظات.';
+  @override
+  String get onboardingPage7Title => 'حماية المجلدات';
+  @override
+  String get onboardingPage7Description => 'يمكنك تعيين رمز للمجلدات لحفظ أسرارك وحمايتها.';
+  @override
+  String get onboardingSkip => 'تخطي';
+  @override
+  String get onboardingBack => 'عودة';
+  @override
+  String get onboardingNext => 'التالي';
+  @override
+  String get onboardingFinish => 'إنهاء';
+
 }
 

@@ -243,4 +243,40 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get splashLoading => 'جاري التحميل...';
+  @override
+  String get onboardingPage1Title => 'Contrôle total';
+  @override
+  String get onboardingPage1Description => 'Créez et organisez vos notes facilement dans des pages et des dossiers.';
+  @override
+  String get onboardingPage2Title => 'Interface simple';
+  @override
+  String get onboardingPage2Description => 'Profitez d\'une interface propre et facile à utiliser.';
+  @override
+  String get onboardingPage3Title => 'Personnalisation du thème';
+  @override
+  String get onboardingPage3Description => 'Choisissez entre les modes clair et sombre selon votre préférence.';
+  @override
+  String get onboardingPage4Title => 'Fonctionne hors ligne';
+  @override
+  String get onboardingPage4Description => 'L\'application fonctionne hors ligne et stocke vos notes localement pour garantir la confidentialité.';
+  @override
+  String get onboardingPage5Title => 'Plusieurs langues';
+  @override
+  String get onboardingPage5Description => 'Arabe, français et anglais sont pris en charge pour plus de flexibilité.';
+  @override
+  String get onboardingPage6Title => 'Sauvegarde & Restauration';
+  @override
+  String get onboardingPage6Description => 'Les futures mises à jour ajouteront la sauvegarde et la restauration; sans sauvegarde, les notes peuvent être perdues si l\'application est supprimée.';
+  @override
+  String get onboardingPage7Title => 'Protection des dossiers';
+  @override
+  String get onboardingPage7Description => 'Définissez un code PIN pour les dossiers afin de garder vos notes privées en sécurité.';
+  @override
+  String get onboardingSkip => 'Passer';
+  @override
+  String get onboardingBack => 'Retour';
+  @override
+  String get onboardingNext => 'Suivant';
+  @override
+  String get onboardingFinish => 'Terminé';
 }

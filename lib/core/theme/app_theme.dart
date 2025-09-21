@@ -109,7 +109,7 @@ class AppTheme {
     cardTheme: CardTheme(
       color: lightCardBackground,
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
+  shadowColor: Color.fromRGBO(0, 0, 0, 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -121,7 +121,7 @@ class AppTheme {
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
         elevation: 2,
-        shadowColor: primaryBlue.withOpacity(0.3),
+  shadowColor: Color.fromRGBO(59, 130, 246, 0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -248,7 +248,7 @@ class AppTheme {
     cardTheme: CardTheme(
       color: darkCardBackground,
       elevation: 8,
-      shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Color.fromRGBO(0, 0, 0, 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -260,7 +260,7 @@ class AppTheme {
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
         elevation: 4,
-        shadowColor: primaryBlue.withOpacity(0.3),
+  shadowColor: Color.fromRGBO((primaryBlue.r * 255).round(), (primaryBlue.g * 255).round(), (primaryBlue.b * 255).round(), 0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -393,7 +393,7 @@ class AppTheme {
     return Theme.of(context).brightness == Brightness.dark
         ? [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Color.fromRGBO(0, 0, 0, 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
               spreadRadius: 0,
@@ -401,7 +401,7 @@ class AppTheme {
           ]
         : [
             BoxShadow(
-              color: Colors.grey.shade200.withOpacity(0.8),
+              color: Color.fromRGBO(229, 231, 235, 0.8),
               blurRadius: 8,
               offset: const Offset(0, 2),
               spreadRadius: 0,
@@ -413,7 +413,7 @@ class AppTheme {
     return Theme.of(context).brightness == Brightness.dark
         ? [
             BoxShadow(
-              color: color.withOpacity(0.4),
+              color: Color.fromRGBO((color.r * 255).round(), (color.g * 255).round(), (color.b * 255).round(), 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
               spreadRadius: 0,
@@ -421,7 +421,7 @@ class AppTheme {
           ]
         : [
             BoxShadow(
-              color: color.withOpacity(0.3),
+              color: Color.fromRGBO((color.r * 255).round(), (color.g * 255).round(), (color.b * 255).round(), 0.3),
               blurRadius: 8,
               offset: const Offset(0, 3),
               spreadRadius: 0,

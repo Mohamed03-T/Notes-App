@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../repositories/notes_repository.dart';
 import 'add_page_screen.dart';
 import '../../core/layout/layout_helpers.dart';
+import '../../generated/l10n/app_localizations.dart';
 import '../../utils/responsive.dart';
 
 class AllPagesScreen extends StatefulWidget {
@@ -19,9 +20,11 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
     final allPages = repo.getPages();
     final sortedPages = repo.getPagesSortedByActivity();
     
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('جميع الصفحات'),
+        title: Text(l10n.allPagesTitle),
         backgroundColor: Colors.blue.shade50,
         actions: [
           IconButton(
@@ -37,7 +40,7 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
               }
             },
             icon: const Icon(Icons.add),
-            tooltip: 'إضافة صفحة جديدة',
+            tooltip: l10n.addNewPage,
           ),
         ],
       ),
@@ -57,7 +60,7 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Color.fromRGBO(128, 128, 128, 0.1),
                     spreadRadius: 1,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
@@ -98,7 +101,7 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          'الأحدث',
+                          l10n.latest,
                           style: TextStyle(
                             color: Colors.green.shade700,
                             fontSize: Layout.bodyFont(context) * 0.9,
@@ -113,7 +116,7 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                   children: [
                     SizedBox(height: Layout.smallGap(context) * 0.4),
                     Text(
-                      '${page.folders.length} ${page.folders.length == 1 ? 'مجلد' : 'مجلدات'}',
+                      l10n.foldersCount(page.folders.length),
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: Layout.bodyFont(context),
@@ -121,7 +124,7 @@ class _AllPagesScreenState extends State<AllPagesScreen> {
                     ),
                     SizedBox(height: Layout.smallGap(context) * 0.4),
                     Text(
-                      'آخر تحديث: ${_getTimeAgo(page.folders)}',
+                      l10n.lastUpdated(_getTimeAgo(page.folders)),
                       style: TextStyle(
                         color: Colors.grey.shade500,
                         fontSize: Layout.bodyFont(context) * 0.9,

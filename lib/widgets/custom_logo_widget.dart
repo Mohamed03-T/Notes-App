@@ -44,12 +44,12 @@ class CustomLogoWidget extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: colors.first.withOpacity(0.4),
+            color: Color.fromRGBO((colors.first.r * 255).round(), (colors.first.g * 255).round(), (colors.first.b * 255).round(), 0.4),
             blurRadius: size * 0.15,
             offset: Offset(0, size * 0.05),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: const Color.fromRGBO(0, 0, 0, 0.1),
             blurRadius: size * 0.1,
             offset: Offset(0, size * 0.02),
           ),
@@ -64,9 +64,9 @@ class CustomLogoWidget extends StatelessWidget {
             height: size * 0.85,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.15),
+              color: const Color.fromRGBO(255, 255, 255, 0.15),
               border: Border.all(
-                color: Colors.white.withOpacity(0.3),
+                color: const Color.fromRGBO(255, 255, 255, 0.3),
                 width: 1,
               ),
             ),
@@ -81,7 +81,7 @@ class CustomLogoWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(size * 0.05),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Color.fromRGBO(0, 0, 0, 0.2),
                   blurRadius: size * 0.02,
                   offset: Offset(0, size * 0.01),
                 ),
@@ -102,7 +102,7 @@ class CustomLogoWidget extends StatelessWidget {
                         width: size * 0.3 * widths[index],
                         height: size * 0.01,
                         decoration: BoxDecoration(
-                          color: colors.first.withOpacity(0.3),
+                          color: Color.fromRGBO((colors.first.r * 255).round(), (colors.first.g * 255).round(), (colors.first.b * 255).round(), 0.3),
                           borderRadius: BorderRadius.circular(size * 0.005),
                         ),
                       );
@@ -154,7 +154,7 @@ class CustomLogoWidget extends StatelessWidget {
                 height: size * sizes[index],
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(opacities[index]),
+                  color: Color.fromRGBO(255, 255, 255, opacities[index]),
                 ),
               ),
             );

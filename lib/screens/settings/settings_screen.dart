@@ -174,21 +174,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: Icons.dark_mode,
                       value: ThemeManager.instance.isDarkMode,
                       onChanged: (value) async {
+                        final messenger = ScaffoldMessenger.of(context);
                         await ThemeManager.instance.toggleTheme();
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(ThemeManager.instance.isDarkMode 
-                                  ? l10n.darkModeEnabled
-                                  : l10n.lightModeEnabled),
-                              duration: const Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                        if (!mounted) return;
+                        final message = ThemeManager.instance.isDarkMode ? l10n.darkModeEnabled : l10n.lightModeEnabled;
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(message),
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          );
-                        }
+                          ),
+                        );
                       },
                     ),
                     const Divider(height: 1),
@@ -256,7 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         });
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(_notificationsEnabled ? 'تم تفعيل الإشعارات' : 'تم إيقاف الإشعارات'),
+                            content: Text(_notificationsEnabled ? l10n.notificationsEnabledOn : l10n.notificationsEnabledOff),
                             duration: const Duration(seconds: 2),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
@@ -268,13 +267,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(height: 1),
                     _buildListTile(
-                      title: 'أصوات الإشعارات',
-                      subtitle: 'الصوت الافتراضي',
+                      title: l10n.notificationSounds,
+                      subtitle: l10n.notificationSoundsSubtitle,
                       icon: Icons.volume_up,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('سيتم إضافة خيارات الأصوات قريباً'),
+                          SnackBar(
+                            content: Text(l10n.notificationSoundsComingSoon),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -292,14 +291,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     _buildSwitchTile(
                       title: l10n.autoBackup,
-                      subtitle: _autoBackupEnabled
-                          ? (_lastAutoBackup != null ? 'آخر نسخة: ${_lastAutoBackup!.toLocal()}' : 'النسخ الدوري مفعل')
-                          : l10n.autoBackupSubtitle,
+            subtitle: _autoBackupEnabled
+              ? (_lastAutoBackup != null ? l10n.autoBackupLast(_lastAutoBackup!.toLocal().toString()) : l10n.autoBackupPeriodicEnabled)
+              : l10n.autoBackupSubtitle,
                       icon: Icons.backup,
                       value: _autoBackupEnabled,
                       onChanged: (val) async {
                         setState(() => _autoBackupEnabled = val);
-                        if (val) {
+                          if (val) {
                           // Start a simple periodic timer (runs while app is in memory)
                           _autoBackupTimer = Timer.periodic(const Duration(hours: 24), (_) async {
                             final repo = await NotesRepository.instance;
@@ -307,51 +306,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             await _writeBackupToFile(json);
                             setState(() { _lastAutoBackup = DateTime.now(); });
                           });
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تفعيل النسخ الدوري (يعمل أثناء تشغيل التطبيق)'), behavior: SnackBarBehavior.floating));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.autoBackupPeriodicEnabledSnackOn), behavior: SnackBarBehavior.floating));
                         } else {
                           _autoBackupTimer?.cancel();
                           _autoBackupTimer = null;
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إيقاف النسخ الدوري'), behavior: SnackBarBehavior.floating));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.autoBackupPeriodicEnabledSnackOff), behavior: SnackBarBehavior.floating));
                         }
                       },
                     ),
                     const Divider(height: 1),
                     _buildListTile(
-                      title: 'تصدير النسخة الاحتياطية',
-                      subtitle: 'حفظ ملف JSON للنسخة الاحتياطية',
+                      title: l10n.exportBackupTitle,
+                      subtitle: l10n.exportBackupSubtitle,
                       icon: Icons.download,
                       onTap: () async {
+                        final messenger = ScaffoldMessenger.of(context);
                         final repo = await NotesRepository.instance;
                         final json = await repo.exportBackupJson();
                         final saved = await _writeBackupToFile(json, promptSave: true);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(saved ? 'تم حفظ النسخة الاحتياطية' : 'فشل في حفظ النسخة')));
+                        if (!mounted) return;
+                        messenger.showSnackBar(SnackBar(content: Text(saved ? l10n.exportBackupSaved : l10n.exportBackupFailed)));
                       },
                     ),
                     const Divider(height: 1),
                     _buildListTile(
-                      title: 'استيراد النسخة الاحتياطية',
-                      subtitle: 'اختر ملف JSON لاستيراده',
+                      title: l10n.importBackupTitle,
+                      subtitle: l10n.importBackupSubtitle,
                       icon: Icons.upload_file,
                       onTap: () async {
+                        final messenger = ScaffoldMessenger.of(context);
                         final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
                         if (result != null && result.files.single.path != null) {
                           final file = File(result.files.single.path!);
                           final content = await file.readAsString();
                           final repo = await NotesRepository.instance;
                           final ok = await repo.importBackupJson(content);
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'تم استيراد النسخة الاحتياطية' : 'فشل في استيراد الملف')));
+                          if (!mounted) return;
+                          messenger.showSnackBar(SnackBar(content: Text(ok ? l10n.importBackupSuccess : l10n.importBackupFailed)));
                         }
                       },
                     ),
                     const Divider(height: 1),
                     _buildListTile(
-                      title: 'استعادة من المفتاح الداخلي',
-                      subtitle: 'استعادة من backup_notes_v2',
+                      title: l10n.restoreFromKeyTitle,
+                      subtitle: l10n.restoreFromKeySubtitle,
                       icon: Icons.restore_from_trash,
                       onTap: () async {
+                        final messenger = ScaffoldMessenger.of(context);
                         final repo = await NotesRepository.instance;
                         final ok = await repo.restoreFromPrefsBackup();
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'تمت الاستعادة من المفتاح الداخلي' : 'لا توجد نسخة احتياطية داخلية')));
+                        if (!mounted) return;
+                        messenger.showSnackBar(SnackBar(content: Text(ok ? l10n.restoreFromKeySuccess : l10n.restoreFromKeyNotFound)));
                       },
                     ),
                   ],
@@ -379,8 +384,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: Icons.person,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('شكراً لاستخدام التطبيق! 💙'),
+                          SnackBar(
+                            content: Text(l10n.thankYouMessage),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -393,7 +398,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // قسم معلومات التطبيق مع الشعار
                 _buildSectionCard(
-                  title: 'معلومات التطبيق',
+                  title: l10n.appInfoTitle,
                   icon: Icons.info_outline,
                   children: [
                     // الشعار مع معلومات التطبيق
@@ -404,13 +409,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               AppLogo(
                                 size: Responsive.wp(context, 18),
                                 showText: true,
-                                text: 'Notes App',
+                                text: l10n.appTitle,
                               ),
                               SizedBox(height: Layout.sectionSpacing(context)),
                               Text(
-                                'تطبيق ملاحظات حديث وأنيق مع دعم المظهر الداكن والفاتح',
+                                l10n.appDescription,
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  color: Color.fromRGBO(
+                    ((Theme.of(context).textTheme.bodyMedium?.color?.r ?? 0) * 255).round(),
+                    ((Theme.of(context).textTheme.bodyMedium?.color?.g ?? 0) * 255).round(),
+                    ((Theme.of(context).textTheme.bodyMedium?.color?.b ?? 0) * 255).round(),
+                    0.7),
                                   fontSize: Responsive.sp(context, 1.8),
                                 ),
                                 textAlign: TextAlign.center,
@@ -426,7 +435,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                     SizedBox(width: Layout.smallGap(context)),
                                     Text(
-                                      'الإصدار 1.0.0',
+                                      l10n.version,
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: Layout.bodyFont(context)),
                                     ),
                                 ],
@@ -469,7 +478,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: AppTheme.getCardShadow(context),
         border: Border.all(
-          color: AppTheme.getBorderColor(context).withOpacity(0.1),
+          color: Color.fromRGBO((AppTheme.getBorderColor(context).r * 255).round(), (AppTheme.getBorderColor(context).g * 255).round(), (AppTheme.getBorderColor(context).b * 255).round(), 0.1),
           width: 1,
         ),
       ),
@@ -483,7 +492,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: EdgeInsets.all(Responsive.wp(context, 1.2)),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: Responsive.sp(context, 1.8)),
@@ -516,7 +525,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       leading: Container(
         padding: EdgeInsets.all(Responsive.wp(context, 1)),
         decoration: BoxDecoration(
-          color: AppTheme.getTextSecondary(context).withOpacity(0.1),
+          color: Color.fromRGBO((AppTheme.getTextSecondary(context).r * 255).round(), (AppTheme.getTextSecondary(context).g * 255).round(), (AppTheme.getTextSecondary(context).b * 255).round(), 0.1),
           borderRadius: BorderRadius.circular(6),
         ),
           child: Icon(
@@ -554,9 +563,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       leading: Container(
         padding: EdgeInsets.all(Responsive.wp(context, 1)),
         decoration: BoxDecoration(
-          color: value 
-            ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-            : AppTheme.getTextSecondary(context).withOpacity(0.1),
+          color: value
+            ? Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.1)
+            : Color.fromRGBO((AppTheme.getTextSecondary(context).r * 255).round(), (AppTheme.getTextSecondary(context).g * 255).round(), (AppTheme.getTextSecondary(context).b * 255).round(), 0.1),
           borderRadius: BorderRadius.circular(6),
         ),
           child: Icon(
@@ -610,17 +619,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: LanguageManager.instance.supportedLanguages.map((lang) {
+                children: LanguageManager.instance.supportedLanguages.map((lang) {
               return RadioListTile<String>(
                 title: Text(lang['name']!, style: Theme.of(context).textTheme.bodyLarge),
                 value: lang['code']!,
                 groupValue: LanguageManager.instance.currentLocale.languageCode,
                 activeColor: Theme.of(context).colorScheme.primary,
                 onChanged: (value) async {
+                  final nav = Navigator.of(context);
                   if (value != null) {
                     await LanguageManager.instance.changeLanguage(value);
                   }
-                  Navigator.pop(context);
+                  if (!mounted) return;
+                  nav.pop();
                 },
               );
             }).toList(),
@@ -659,7 +670,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -680,7 +691,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'تطبيق ملاحظات حديث وأنيق مع دعم المظهر الداكن والفاتح',
+                l10n.appDescription,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: 16),

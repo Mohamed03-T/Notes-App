@@ -3,6 +3,7 @@ import '../../repositories/notes_repository.dart';
 import '../../models/page_model.dart';
 import '../../core/layout/layout_helpers.dart';
 import '../../utils/responsive.dart';
+import '../../generated/l10n/app_localizations.dart';
 
 class AddFolderScreen extends StatefulWidget {
   final String pageId;
@@ -61,9 +62,11 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
     final reserved = kToolbarHeight + MediaQuery.of(context).padding.top + 32;
     final avail = Layout.availableHeight(context, reservedHeight: reserved);
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إضافة مجلد جديد'),
+        title: Text(l10n.addFolderTitle),
         backgroundColor: Colors.blue.shade50,
       ),
       body: SingleChildScrollView(
@@ -90,7 +93,7 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
                       ),
                       SizedBox(height: Layout.smallGap(context)),
                       Text(
-                        'إنشاء مجلد جديد',
+                        l10n.createFolder,
                         style: TextStyle(
                           fontSize: Responsive.sp(context, 2.4),
                           fontWeight: FontWeight.bold,
@@ -99,7 +102,7 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
                       ),
                       SizedBox(height: Layout.smallGap(context) * 0.8),
                       Text(
-                        'في صفحة: ${widget.page.title}',
+                        l10n.inPage(widget.page.title),
                         style: TextStyle(
                           fontSize: Layout.bodyFont(context),
                           color: Colors.blue.shade700,
@@ -108,7 +111,7 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
                       ),
                       SizedBox(height: Layout.smallGap(context) * 0.6),
                       Text(
-                        'أضف مجلد جديد لتنظيم ملاحظاتك',
+                        l10n.addFolderDescription,
                         style: TextStyle(
                           fontSize: Layout.bodyFont(context) * 0.95,
                           color: Colors.blue.shade600,
@@ -122,8 +125,8 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
                 TextField(
                   controller: _titleController,
                   decoration: InputDecoration(
-                    labelText: 'اسم المجلد',
-                    hintText: 'مثال: مهام يومية، أفكار، اجتماعات...',
+                    labelText: l10n.folderName,
+                    hintText: l10n.folderNameHint,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -156,11 +159,11 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
                               ),
                             ),
                             SizedBox(width: Layout.smallGap(context)),
-                            Text('جاري الإنشاء...', style: TextStyle(fontSize: Layout.bodyFont(context))),
+                            Text(l10n.creatingFolder, style: TextStyle(fontSize: Layout.bodyFont(context))),
                           ],
                         )
                       : Text(
-                          'إنشاء المجلد',
+                          l10n.createFolder,
                           style: TextStyle(fontSize: Layout.bodyFont(context), fontWeight: FontWeight.bold),
                         ),
                 ),
@@ -168,7 +171,7 @@ class _AddFolderScreenState extends State<AddFolderScreen> {
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
-                    'إلغاء',
+                    l10n.cancel,
                     style: TextStyle(fontSize: Layout.bodyFont(context)),
                   ),
                 ),

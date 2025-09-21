@@ -516,6 +516,26 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'جاري التحميل...'**
   String get splashLoading;
+
+  // Onboarding strings
+  String get onboardingPage1Title;
+  String get onboardingPage1Description;
+  String get onboardingPage2Title;
+  String get onboardingPage2Description;
+  String get onboardingPage3Title;
+  String get onboardingPage3Description;
+  String get onboardingPage4Title;
+  String get onboardingPage4Description;
+  String get onboardingPage5Title;
+  String get onboardingPage5Description;
+  String get onboardingPage6Title;
+  String get onboardingPage6Description;
+  String get onboardingPage7Title;
+  String get onboardingPage7Description;
+  String get onboardingSkip;
+  String get onboardingBack;
+  String get onboardingNext;
+  String get onboardingFinish;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

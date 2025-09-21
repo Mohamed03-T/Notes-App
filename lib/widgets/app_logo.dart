@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../core/utils/app_assets.dart';
 
@@ -52,13 +53,13 @@ class AppLogo extends StatelessWidget {
       fit: BoxFit.contain, // تحسين ليحافظ على النسب
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
         if (frame != null) {
-          print('✅ تم تحميل الشعار بنجاح من ${AppAssets.logoPng}');
+          if (kDebugMode) debugPrint('✅ تم تحميل الشعار بنجاح من ${AppAssets.logoPng}');
         }
         return child;
       },
       errorBuilder: (context, error, stackTrace) {
-        print('🖼️ فشل في تحميل الشعار من ${AppAssets.logoPng}: $error');
-        print('📋 استخدام الشعار الافتراضي البسيط كبديل');
+  if (kDebugMode) debugPrint('🖼️ فشل في تحميل الشعار من ${AppAssets.logoPng}: $error');
+  if (kDebugMode) debugPrint('📋 استخدام الشعار الافتراضي البسيط كبديل');
         
         // شعار افتراضي بسيط ونظيف
         return Container(

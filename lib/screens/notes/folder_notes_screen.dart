@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../repositories/notes_repository.dart';
+import '../../generated/l10n/app_localizations.dart';
 import '../../components/note_card/note_card.dart';
 import '../../components/composer_bar/composer_bar.dart';
 import '../../core/layout/layout_helpers.dart';
@@ -57,9 +58,10 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (repo == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('تحميل...')),
+        appBar: AppBar(title: Text(l10n.loadingData)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -68,8 +70,8 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
     
     if (folder == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('خطأ')),
-        body: const Center(child: Text('المجلد غير موجود')),
+        appBar: AppBar(title: Text(l10n.error)),
+        body: Center(child: Text(l10n.folderNotFound)),
       );
     }
     

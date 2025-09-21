@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import '../../models/folder_model.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/layout/layout_helpers.dart';
 import '../../utils/responsive.dart';
+import '../../generated/l10n/app_localizations.dart';
 
 class FolderCard extends StatefulWidget {
   final FolderModel folder;
@@ -46,20 +46,20 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
   }
 
   String _getTimeAgo(DateTime? updatedAt) {
-    if (updatedAt == null) return 'لم يتم التحديث';
+    if (updatedAt == null) return AppLocalizations.of(context)!.now; // fall back
     
     try {
       final now = DateTime.now();
       final difference = now.difference(updatedAt);
       
       if (difference.inDays > 0) {
-        return 'منذ ${difference.inDays} ${difference.inDays == 1 ? 'يوم' : 'أيام'}';
+        return AppLocalizations.of(context)!.daysAgo(difference.inDays);
       } else if (difference.inHours > 0) {
-        return 'منذ ${difference.inHours} ${difference.inHours == 1 ? 'ساعة' : 'ساعات'}';
+        return AppLocalizations.of(context)!.hoursAgo(difference.inHours);
       } else if (difference.inMinutes > 0) {
-        return 'منذ ${difference.inMinutes} ${difference.inMinutes == 1 ? 'دقيقة' : 'دقائق'}';
+        return AppLocalizations.of(context)!.minutesAgo(difference.inMinutes);
       } else {
-        return 'الآن';
+        return AppLocalizations.of(context)!.now;
       }
     } catch (e) {
       return 'وقت غير محدد';
@@ -71,6 +71,8 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
     final notesCount = widget.folder.notes.length;
     final hasNotes = notesCount > 0;
     final timeAgo = _getTimeAgo(widget.folder.updatedAt);
+  final baseBg = widget.folder.backgroundColor ?? AppTheme.getCardColor(context);
+  final bgColor = Color.fromRGBO((baseBg.r * 255).round(), (baseBg.g * 255).round(), (baseBg.b * 255).round(), widget.isDragging ? 0.5 : 1.0);
     
     Widget card = AnimatedBuilder(
       animation: _scaleAnimation,
@@ -101,15 +103,14 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
             onTapCancel: widget.isDragging ? null : () {
               _animationController.reverse();
             },
-            child: Container(
+                child: Container(
               margin: EdgeInsets.all(Responsive.wp(context, 2)),
               decoration: BoxDecoration(
-                color: (widget.folder.backgroundColor ?? AppTheme.getCardColor(context))
-                    .withOpacity(widget.isDragging ? 0.5 : 1.0),
+                color: bgColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: AppTheme.getCardShadow(context),
                 border: Border.all(
-                  color: AppTheme.getBorderColor(context).withOpacity(0.1),
+                  color: Color.fromRGBO((AppTheme.getBorderColor(context).r * 255).round(), (AppTheme.getBorderColor(context).g * 255).round(), (AppTheme.getBorderColor(context).b * 255).round(), 0.1),
                   width: 1,
                 ),
               ),
@@ -156,7 +157,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -187,11 +188,11 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                                   builder: (ctx) {
                                     final controller = TextEditingController(text: widget.folder.title);
                                     return AlertDialog(
-                                      title: const Text('تغيير اسم المجلد'),
+                                      title: Text(AppLocalizations.of(context)!.renameFolder),
                                       content: TextField(controller: controller),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-                                        TextButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('تأكيد')),
+                                          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.cancel)),
+                                          TextButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: Text(AppLocalizations.of(context)!.confirm)),
                                       ],
                                     );
                                   },
@@ -205,7 +206,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                                 final chosen = await showDialog<Color>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
-                                    title: const Text('اختر لون الخلفية'),
+                                    title: Text(AppLocalizations.of(context)!.selectBackgroundColor),
                                     content: SingleChildScrollView(
                                       child: Wrap(
                                         spacing: 8, runSpacing: 8,
@@ -223,11 +224,11 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                                 final confirm = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
-                                    title: const Text('تأكيد الحذف'),
-                                    content: const Text('هل تريد حذف هذا المجلد؟'),
+                                    title: Text(AppLocalizations.of(context)!.confirmDelete),
+                                    content: Text(AppLocalizations.of(context)!.deleteConfirmMessage(widget.folder.title)),
                                     actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
+                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red))),
                                     ],
                                   ),
                                 );
@@ -236,10 +237,10 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                             }
                           },
                           itemBuilder: (_) => [
-                            PopupMenuItem(value: 'pin', child: Text(widget.folder.isPinned ? 'إلغاء تثبيت' : 'تثبيت')),
-                            const PopupMenuItem(value: 'rename', child: Text('تغيير الاسم')),
-                            const PopupMenuItem(value: 'color', child: Text('تغيير اللون')),
-                            const PopupMenuItem(value: 'delete', child: Text('حذف', style: TextStyle(color: Colors.red))),
+                            PopupMenuItem(value: 'pin', child: Text(widget.folder.isPinned ? AppLocalizations.of(context)!.unpinFolder : AppLocalizations.of(context)!.pinFolder)),
+                            PopupMenuItem(value: 'rename', child: Text(AppLocalizations.of(context)!.renameFolder)),
+                            PopupMenuItem(value: 'color', child: Text(AppLocalizations.of(context)!.changeBackgroundColor)),
+                            PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red))),
                           ],
                         ),
                       ],
@@ -258,7 +259,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.6, vertical: Responsive.hp(context, 1.0)),
                     decoration: BoxDecoration(
-                      color: AppTheme.getDividerColor(context).withOpacity(0.3),
+                      color: Color.fromRGBO((AppTheme.getDividerColor(context).r * 255).round(), (AppTheme.getDividerColor(context).g * 255).round(), (AppTheme.getDividerColor(context).b * 255).round(), 0.3),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(16),
                         bottomRight: Radius.circular(16),
@@ -315,10 +316,10 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
             margin: EdgeInsets.only(bottom: isLast ? 0 : 1),
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+              color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.05),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.1),
                 width: 1,
               ),
             ),
@@ -330,7 +331,7 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                   width: 3,
                   height: 3,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                    color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.6),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -386,11 +387,11 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
           Icon(
             Icons.note_add_outlined,
             size: 16,
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+            color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.6),
           ),
           const SizedBox(height: 2),
           Text(
-            'لا توجد ملاحظات',
+            AppLocalizations.of(context)!.noNotes,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppTheme.getTextSecondary(context),
               fontSize: 10,

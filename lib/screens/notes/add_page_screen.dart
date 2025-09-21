@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../repositories/notes_repository.dart';
 import '../../core/layout/layout_helpers.dart';
 import '../../utils/responsive.dart';
+import '../../generated/l10n/app_localizations.dart';
 
 class AddPageScreen extends StatefulWidget {
   const AddPageScreen({Key? key}) : super(key: key);
@@ -54,9 +55,11 @@ class _AddPageScreenState extends State<AddPageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('إضافة صفحة جديدة', style: TextStyle(fontSize: Layout.titleFont(context))),
+        title: Text(l10n.addNewPage, style: TextStyle(fontSize: Layout.titleFont(context))),
         backgroundColor: Colors.grey.shade800,
         foregroundColor: Colors.grey.shade200,
       ),
@@ -89,7 +92,7 @@ class _AddPageScreenState extends State<AddPageScreen> {
                           ),
                           SizedBox(height: Layout.smallGap(context)),
                           Text(
-                            'إنشاء صفحة جديدة',
+                            l10n.createNewPage,
                             style: TextStyle(
                               fontSize: Responsive.sp(context, 2.8),
                               fontWeight: FontWeight.bold,
@@ -98,7 +101,7 @@ class _AddPageScreenState extends State<AddPageScreen> {
                           ),
                           SizedBox(height: Layout.smallGap(context) * 0.6),
                           Text(
-                            'أضف صفحة جديدة لتنظيم ملاحظاتك بشكل أفضل',
+                            l10n.addPageDescription,
                             style: TextStyle(
                               fontSize: Layout.bodyFont(context),
                               color: Colors.grey.shade300,
@@ -112,8 +115,8 @@ class _AddPageScreenState extends State<AddPageScreen> {
                     TextField(
                       controller: _titleController,
                       decoration: InputDecoration(
-                        labelText: 'اسم الصفحة',
-                        hintText: 'مثال: مشاريع، أفكار، مهام...',
+                        labelText: l10n.pageName,
+                        hintText: l10n.pageNameHint,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -146,11 +149,11 @@ class _AddPageScreenState extends State<AddPageScreen> {
                                   ),
                                 ),
                                 SizedBox(width: Responsive.wp(context, 2.4)),
-                                Text('جاري الإنشاء...', style: TextStyle(fontSize: Layout.bodyFont(context))),
+                                Text(l10n.creating, style: TextStyle(fontSize: Layout.bodyFont(context))),
                               ],
                             )
                           : Text(
-                              'إنشاء الصفحة',
+                              l10n.createPage,
                               style: TextStyle(fontSize: Layout.bodyFont(context), fontWeight: FontWeight.bold),
                             ),
                     ),
@@ -158,7 +161,7 @@ class _AddPageScreenState extends State<AddPageScreen> {
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: Text(
-                        'إلغاء',
+                        l10n.cancel,
                         style: TextStyle(fontSize: Layout.bodyFont(context)),
                       ),
                     ),

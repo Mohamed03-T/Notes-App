@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../generated/l10n/app_localizations.dart';
 import '../../components/top_bar/top_bar.dart';
 import '../../core/layout/layout_helpers.dart';
@@ -48,7 +49,7 @@ class _NotesHomeState extends State<NotesHome> {
         });
       }
     } catch (e) {
-      debugPrint('❌ خطأ في تحميل البيانات: $e');
+  if (kDebugMode) debugPrint('❌ خطأ في تحميل البيانات: $e');
       if (mounted) {
         setState(() {
           isInitializing = false;
@@ -58,7 +59,7 @@ class _NotesHomeState extends State<NotesHome> {
   }
 
   void _selectPage(int index) {
-    debugPrint('🔄 تم اختيار الصفحة بالفهرس: $index');
+  if (kDebugMode) debugPrint('🔄 تم اختيار الصفحة بالفهرس: $index');
     if (repo == null) return;
     setState(() {
       currentPageIndex = index;
@@ -66,7 +67,7 @@ class _NotesHomeState extends State<NotesHome> {
       final pages = repo!.getPages();
       if (pages.isNotEmpty && index < pages.length) {
         folderList = List<FolderModel>.from(pages[index].folders);
-        debugPrint('🔄 تم تحديث قائمة المجلدات للصفحة: ${pages[index].title}');
+        if (kDebugMode) debugPrint('🔄 تم تحديث قائمة المجلدات للصفحة: ${pages[index].title}');
       }
     });
   }
@@ -78,6 +79,7 @@ class _NotesHomeState extends State<NotesHome> {
     );
     
     if (selectedPageIndex != null) {
+      if (!mounted) return;
       setState(() {
         currentPageIndex = selectedPageIndex;
       });
@@ -95,6 +97,7 @@ class _NotesHomeState extends State<NotesHome> {
       final allPages = repo!.getPages();
       final newPageIndex = allPages.indexWhere((page) => page.id == result);
       if (newPageIndex != -1) {
+        if (!mounted) return;
         setState(() {
           currentPageIndex = newPageIndex;
         });
@@ -358,16 +361,17 @@ class _NotesHomeState extends State<NotesHome> {
                   MaterialPageRoute(builder: (context) => const AddPageScreen()),
                 );
                 
-                if (result != null) {
-                  // تحديث الشاشة وانتقل إلى الصفحة الجديدة
-                  final allPages = repo!.getPages();
-                  final newPageIndex = allPages.indexWhere((page) => page.id == result);
-                  if (newPageIndex != -1) {
-                    setState(() {
-                      currentPageIndex = newPageIndex;
-                    });
+                  if (result != null) {
+                    // تحديث الشاشة وانتقل إلى الصفحة الجديدة
+                    final allPages = repo!.getPages();
+                    final newPageIndex = allPages.indexWhere((page) => page.id == result);
+                    if (newPageIndex != -1) {
+                      if (!mounted) return;
+                      setState(() {
+                        currentPageIndex = newPageIndex;
+                      });
+                    }
                   }
-                }
               },
               icon: const Icon(Icons.add, color: Colors.blue),
               tooltip: l10n.addNewPage,
@@ -411,6 +415,7 @@ class _NotesHomeState extends State<NotesHome> {
                     final allPages = repo!.getPages();
                     final newPageIndex = allPages.indexWhere((page) => page.id == result);
                     if (newPageIndex != -1) {
+                      if (!mounted) return;
                       setState(() {
                         currentPageIndex = newPageIndex;
                       });
@@ -434,8 +439,8 @@ class _NotesHomeState extends State<NotesHome> {
       );
     }
 
-  debugPrint('🔍 الصفحة الحالية: ${current.title} (فهرس: $currentPageIndex)');
-  debugPrint('🔍 استخدام الترتيب المصنف؟ $useSorted');
+  if (kDebugMode) debugPrint('🔍 الصفحة الحالية: ${current.title} (فهرس: $currentPageIndex)');
+  if (kDebugMode) debugPrint('🔍 استخدام الترتيب المصنف؟ $useSorted');
 
     // Initialize or reset folderList when page changes
     if (folderList.length != current.folders.length) {
@@ -473,6 +478,7 @@ class _NotesHomeState extends State<NotesHome> {
           if (pages.isNotEmpty && currentPageIndex < pages.length) {
             folderList = List<FolderModel>.from(pages[currentPageIndex].folders);
           }
+          if (!mounted) return;
           setState(() {});
         },
         child: folderList.isEmpty 
@@ -486,7 +492,7 @@ class _NotesHomeState extends State<NotesHome> {
                   ),
                   SizedBox(height: Layout.sectionSpacing(context)),
                   Text(
-                    'لا توجد مجلدات بعد',
+                    l10n.noFoldersYet,
                     style: TextStyle(
                       fontSize: Responsive.sp(context, 3.0),
                       fontWeight: FontWeight.bold,
@@ -495,7 +501,7 @@ class _NotesHomeState extends State<NotesHome> {
                   ),
                   SizedBox(height: Layout.smallGap(context)),
                   Text(
-                    'انقر على + لإضافة مجلد جديد',
+                    l10n.tapPlusToAddFolder,
                     style: TextStyle(
                       fontSize: Layout.bodyFont(context),
                       color: Colors.grey.shade500,
@@ -511,8 +517,9 @@ class _NotesHomeState extends State<NotesHome> {
             children: folderList.map((f) {
               final targetIndex = folderList.indexOf(f);
               return DragTarget<FolderModel>(
-                onWillAccept: (data) => data != f,
-                onAccept: (dragged) async {
+                onWillAcceptWithDetails: (details) => details.data != f,
+                onAcceptWithDetails: (details) async {
+                  final dragged = details.data;
                   final oldIndex = folderList.indexOf(dragged);
                   
                   setState(() {
@@ -526,6 +533,7 @@ class _NotesHomeState extends State<NotesHome> {
                   // تحديث folderList من المصدر الفعلي بعد إعادة الترتيب
                   final updatedPage = repo!.getPage(current.id);
                   if (updatedPage != null) {
+                    if (!mounted) return;
                     setState(() {
                       folderList = List<FolderModel>.from(updatedPage.folders);
                     });
@@ -553,7 +561,7 @@ class _NotesHomeState extends State<NotesHome> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.blue.withOpacity(0.4),
+                                color: Color.fromRGBO(59, 130, 246, 0.4),
                                 blurRadius: 16,
                                 spreadRadius: 4,
                                 offset: const Offset(0, 8),
@@ -614,11 +622,11 @@ class _NotesHomeState extends State<NotesHome> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.blue.withOpacity(0.5),
+                            color: Color.fromRGBO(59, 130, 246, 0.5),
                             width: 2,
                             style: BorderStyle.solid,
                           ),
-                          color: Colors.blue.withOpacity(0.1),
+                            color: Color.fromRGBO(59, 130, 246, 0.1),
                         ),
                         child: Center(
                           child: Icon(
@@ -643,6 +651,7 @@ class _NotesHomeState extends State<NotesHome> {
                         if (pages.isNotEmpty && currentPageIndex < pages.length) {
                           folderList = List<FolderModel>.from(pages[currentPageIndex].folders);
                         }
+                        if (!mounted) return;
                         setState(() {});
                       },
                       onDoubleTap: () => _showFolderActions(f, l10n), // إضافة النقر المزدوج
@@ -664,7 +673,7 @@ class _NotesHomeState extends State<NotesHome> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.blue.withOpacity(0.2),
+                            color: Color.fromRGBO(59, 130, 246, 0.2),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),
@@ -694,6 +703,7 @@ class _NotesHomeState extends State<NotesHome> {
           
           if (result != null) {
             // تحديث الشاشة بعد إضافة مجلد جديد
+            if (!mounted) return;
             setState(() {});
           }
         },

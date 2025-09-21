@@ -200,6 +200,20 @@
   "@loadingData": {
     "description": "رسالة تحميل البيانات"
   },
+  "allPagesTitle": "جميع الصفحات",
+  "latest": "الأحدث",
+  "foldersCount": "{count, plural, =0{لا توجد مجلدات} =1{مجلد واحد} other{{count} مجلدات}}",
+  "@foldersCount": {
+    "description": "عدد المجلدات",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "lastUpdated": "آخر تحديث: {when}",
+  "@lastUpdated": {"description": "نص آخر تحديث", "placeholders": {"when": {"type": "String"}}},
+  "addPageDescription": "أضف صفحة جديدة لتنظيم ملاحظاتك بشكل أفضل",
+  "pageName": "اسم الصفحة",
+  "pageNameHint": "مثال: مشاريع، أفكار، مهام...",
+  "creating": "جاري الإنشاء...",
+  "createPage": "إنشاء الصفحة",
   "manageFolder": "إدارة المجلد:",
   "@manageFolder": {
     "description": "عنوان إدارة المجلد"
@@ -254,6 +268,11 @@
     "description": "زر الحذف"
   },
   "noFolders": "لا توجد مجلدات",
+  "noNotes": "لا توجد ملاحظات",
+  "noFoldersYet": "لا توجد مجلدات بعد",
+  "tapPlusToAddFolder": "انقر على + لإضافة مجلد جديد",
+  "error": "خطأ",
+  "folderNotFound": "المجلد غير موجود",
   "@noFolders": {
     "description": "رسالة عدم وجود مجلدات"
   },
@@ -301,4 +320,89 @@
   "@splashLoading": {
     "description": "نص التحميل في شاشة البداية"
   }
+  ,
+  "onboardingPage1Title": "تحكم كامل",
+  "onboardingPage1Description": "قم بإنشاء وتنظيم ملاحظاتك بكل سهولة داخل صفحات ومجلدات.",
+  "onboardingPage2Title": "واجهة بسيطة",
+  "onboardingPage2Description": "استمتع بواجهة مستخدم نظيفة وسهلة الاستخدام.",
+  "onboardingPage3Title": "تخصيص المظهر",
+  "onboardingPage3Description": "اختر بين الوضع الفاتح والداكن حسب رغبتك.",
+  "onboardingPage4Title": "عمل دون إنترنت",
+  "onboardingPage4Description": "التطبيق يعمل دون اتصال بالإنترنت ويخزن ملاحظاتك محلياً لضمان خصوصية عالية.",
+  "onboardingPage5Title": "اللغات المتوفرة",
+  "onboardingPage5Description": "العربية، الفرنسية، والإنجليزية لتجربة أكثر سهولة ومرونة.",
+  "onboardingPage6Title": "النسخ والاستعادة",
+  "onboardingPage6Description": "تتوفر تحديثات مستقبلية لنسخ البيانات واستعادتها، وإذا حُذف التطبيق دون نسخ احتياطي ستُفقد الملاحظات.",
+  "onboardingPage7Title": "حماية المجلدات",
+  "onboardingPage7Description": "يمكنك تعيين رمز للمجلدات لحفظ أسرارك وحمايتها.",
+  "onboardingSkip": "تخطي",
+  "onboardingBack": "عودة",
+  "onboardingNext": "التالي",
+  "onboardingFinish": "إنهاء"
+,
+  "foldersInPage": "المجلدات في {page}",
+  "noFoldersHere": "لا توجد مجلدات في هذه الصفحة",
+  "addNoteTitleSimple": "إضافة ملاحظة",
+  "addNoteTitleArticle": "مقال جديد",
+  "addNoteTitleEmail": "بريد إلكتروني جديد",
+  "addNoteTitleChecklist": "قائمة تحقق جديدة",
+  "save": "حفظ",
+  "addFolderTitle": "إضافة مجلد جديد",
+  "createFolder": "إنشاء المجلد",
+  "addFolderDescription": "أضف مجلدًا جديدًا لتنظيم الملاحظات داخل هذه الصفحة",
+  "inPage": "في الصفحة: {page}",
+  "folderName": "اسم المجلد",
+  "folderNameHint": "مثال: مهام يومية، أفكار، اجتماعات...",
+  "creatingFolder": "جاري الإنشاء...",
+  "cancel": "إلغاء",
+  "notificationsEnabledOn": "تم تفعيل الإشعارات",
+  "notificationsEnabledOff": "تم إيقاف الإشعارات",
+  "notificationSounds": "أصوات الإشعارات",
+  "notificationSoundsSubtitle": "الصوت الافتراضي",
+  "notificationSoundsComingSoon": "سيتم إضافة خيارات الأصوات قريباً",
+  "autoBackupPeriodicEnabled": "تم تفعيل النسخ الدوري",
+  "autoBackupLast": "آخر نسخة: {date}",
+  "@autoBackupLast": {
+    "description": "وقت آخر نسخة احتياطية",
+    "placeholders": {"date": {"type": "String"}}
+  },
+  "autoBackupPeriodicEnabledSnackOn": "تم تفعيل النسخ الدوري (يعمل أثناء تشغيل التطبيق)",
+  "autoBackupPeriodicEnabledSnackOff": "تم إيقاف النسخ الدوري",
+  "exportBackupTitle": "تصدير النسخة الاحتياطية",
+  "exportBackupSubtitle": "حفظ ملف JSON للنسخة الاحتياطية",
+  "exportBackupSaved": "تم حفظ النسخة الاحتياطية",
+  "exportBackupFailed": "فشل في حفظ النسخة الاحتياطية",
+  "importBackupTitle": "استيراد النسخة الاحتياطية",
+  "importBackupSubtitle": "اختر ملف JSON لاستيراده",
+  "importBackupSuccess": "تم استيراد النسخة الاحتياطية",
+  "importBackupFailed": "فشل في استيراد الملف",
+  "restoreFromKeyTitle": "استعادة من المفتاح الداخلي",
+  "restoreFromKeySubtitle": "استعادة من backup_notes_v2",
+  "restoreFromKeySuccess": "تمت الاستعادة من المفتاح الداخلي",
+  "restoreFromKeyNotFound": "لا توجد نسخة احتياطية داخلية",
+  "appInfoTitle": "معلومات التطبيق",
+  "appDescription": "تطبيق ملاحظات حديث وأنيق مع دعم المظهر الداكن والفاتح",
+  "thankYouMessage": "شكراً لاستخدام التطبيق! 💙"
+  ,
+  "composerHint": "اكتب ملاحظة سريعة... (أو اضغط أيقونة الكتابة للخيارات المتقدمة)",
+  "composerSend": "إرسال",
+  "composerCreate": "إنشاء ملاحظة",
+  "composerSavedSuccess": "تم حفظ الملاحظة بنجاح ✅",
+  "composerSavedFailure": "فشل في حفظ الملاحظة ❌",
+  "composerError": "خطأ: {error}",
+  "composerOptionSimple": "ملاحظة بسيطة",
+  "composerOptionArticle": "مقال / ملاحظة طويلة",
+  "composerOptionEmail": "بريد إلكتروني / رسالة منسقة",
+  "composerOptionChecklist": "قائمة تحقق / مهام",
+  "composerOptionCancel": "إلغاء"
+  ,
+  "noteTypeSimple": "بسيطة",
+  "noteTypeArticle": "مقال",
+  "noteTypeEmail": "بريد إلكتروني",
+  "noteTypeChecklist": "قائمة تحقق"
+   ,
+   "noteTypeText": "نص",
+   "noteTypeImage": "صورة",
+   "noteTypeAudio": "صوت"
 }
+

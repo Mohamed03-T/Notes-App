@@ -3,6 +3,7 @@ import '../../core/theme/tokens.dart';
 import '../../widgets/app_logo.dart';
 import '../../core/layout/layout_helpers.dart';
 import '../../utils/responsive.dart';
+import '../../generated/l10n/app_localizations.dart';
 
 // Class مساعد لبيانات الصفحات المرئية
 class _VisiblePagesData {
@@ -222,8 +223,8 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             onPageSelected?.call(mappedOriginal);
           },
           borderRadius: BorderRadius.circular(20),
-          splashColor: Colors.blue.withOpacity(0.1),
-          highlightColor: Colors.blue.withOpacity(0.05),
+          splashColor: const Color.fromRGBO(59, 130, 246, 0.1),
+          highlightColor: const Color.fromRGBO(59, 130, 246, 0.05),
             child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -256,13 +257,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: Colors.blue.shade200.withOpacity(0.5),
+                        color: Color.fromRGBO(147, 197, 253, 0.5),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                         spreadRadius: 0,
                       ),
                       BoxShadow(
-                        color: Colors.blue.shade100.withOpacity(0.3),
+                        color: Color.fromRGBO(191, 219, 254, 0.3),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                         spreadRadius: 0,
@@ -270,7 +271,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                     ]
                   : [
                       BoxShadow(
-                        color: Colors.grey.shade200.withOpacity(0.3),
+                        color: Color.fromRGBO(229, 231, 235, 0.3),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                         spreadRadius: 0,
@@ -318,49 +319,49 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
           case 'language':
             // TODO: تنفيذ اختيار اللغة
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('سيتم إضافة اختيار اللغة قريباً')),
+              SnackBar(content: Text(AppLocalizations.of(context)!.helpComingSoon)),
             );
             break;
           case 'notifications':
             // TODO: تنفيذ إعدادات الإشعارات
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('سيتم إضافة إعدادات الإشعارات قريباً')),
+              SnackBar(content: Text(AppLocalizations.of(context)!.notificationSoundsComingSoon)),
             );
             break;
         }
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
         if (onAddPagePressed != null)
-          const PopupMenuItem<String>(
+          PopupMenuItem<String>(
             value: 'add_page',
             child: ListTile(
               leading: Icon(Icons.add, color: Colors.green),
-              title: Text('إضافة صفحة جديدة'),
+              title: Text(AppLocalizations.of(context)!.addNewPage),
               contentPadding: EdgeInsets.zero,
             ),
           ),
         if (onSettingsPressed != null)
-          const PopupMenuItem<String>(
+          PopupMenuItem<String>(
             value: 'settings',
             child: ListTile(
               leading: Icon(Icons.settings, color: Colors.grey),
-              title: Text('الإعدادات'),
+              title: Text(AppLocalizations.of(context)!.settings),
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'language',
           child: ListTile(
             leading: Icon(Icons.language, color: Colors.blue),
-            title: Text('اللغة'),
+            title: Text(AppLocalizations.of(context)!.selectLanguage),
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'notifications',
           child: ListTile(
             leading: Icon(Icons.notifications, color: Colors.orange),
-            title: Text('الإشعارات'),
+            title: Text(AppLocalizations.of(context)!.notifications),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -384,7 +385,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.shade300.withOpacity(0.4),
+                  color: Color.fromRGBO(209, 213, 219, 0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                   spreadRadius: 0,
@@ -407,9 +408,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onMorePressed,
-        borderRadius: BorderRadius.circular(20),
-        splashColor: Colors.orange.withOpacity(0.1),
-        highlightColor: Colors.orange.withOpacity(0.05),
+  borderRadius: BorderRadius.circular(20),
+  splashColor: const Color.fromRGBO(249, 115, 22, 0.1),
+  highlightColor: const Color.fromRGBO(249, 115, 22, 0.05),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           width: 40,
@@ -426,7 +427,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.orange.shade200.withOpacity(0.4),
+                color: Color.fromRGBO(255, 209, 148, 0.4),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
                 spreadRadius: 0,

@@ -243,4 +243,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get splashLoading => 'Loading...';
+
+  @override
+  String get onboardingPage1Title => 'Full Control';
+  @override
+  String get onboardingPage1Description => 'Create and organize your notes easily within pages and folders.';
+  @override
+  String get onboardingPage2Title => 'Simple Interface';
+  @override
+  String get onboardingPage2Description => 'Enjoy a clean and easy-to-use user interface.';
+  @override
+  String get onboardingPage3Title => 'Theme Customization';
+  @override
+  String get onboardingPage3Description => 'Choose between light and dark modes as you prefer.';
+  @override
+  String get onboardingPage4Title => 'Offline Ready';
+  @override
+  String get onboardingPage4Description => 'The app works offline and stores notes locally to ensure privacy.';
+  @override
+  String get onboardingPage5Title => 'Multiple Languages';
+  @override
+  String get onboardingPage5Description => 'Arabic, French, and English supported for flexibility.';
+  @override
+  String get onboardingPage6Title => 'Backup & Restore';
+  @override
+  String get onboardingPage6Description => 'Future updates will add backup and restore; without backup notes may be lost if app is removed.';
+  @override
+  String get onboardingPage7Title => 'Folder Protection';
+  @override
+  String get onboardingPage7Description => 'Set a PIN for folders to keep your private notes safe.';
+  @override
+  String get onboardingSkip => 'Skip';
+  @override
+  String get onboardingBack => 'Back';
+  @override
+  String get onboardingNext => 'Next';
+  @override
+  String get onboardingFinish => 'Finish';
 }

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../generated/l10n/app_localizations.dart';
 import '../../screens/notes/add_note_screen.dart';
 import '../../repositories/notes_repository.dart';
 import '../../core/layout/layout_helpers.dart';
@@ -30,14 +32,13 @@ class ComposerBarState extends State<ComposerBar> {
     _hasText = _controller.text.trim().isNotEmpty;
     _controller.addListener(() {
       final hasText = _controller.text.trim().isNotEmpty;
-      print('🎯 تغيير النص: "$hasText" (كان: $_hasText)');
       if (hasText != _hasText) {
         setState(() => _hasText = hasText);
-        print('🔄 تم تحديث الحالة: _hasText = $_hasText');
-        
-        // استدعاء callback عند تغيير حالة النص
         if (widget.onTextChanged != null) {
           widget.onTextChanged!(hasText);
+        }
+        if (kDebugMode) {
+          debugPrint('ComposerBar: text state changed: $_hasText');
         }
       }
     });
@@ -64,23 +65,20 @@ class ComposerBarState extends State<ComposerBar> {
   }
 
   Future<void> _handlePrimaryAction() async {
-    print('🔥 زر الإرسال تم الضغط عليه!');
-    print('🔥 النص موجود: $_hasText');
-    print('🔥 المرفقات موجودة: $_hasAttachments');
-    print('🔥 النص الحالي: "${_controller.text}"');
+  if (kDebugMode) debugPrint('ComposerBar: primary action pressed, hasText=$_hasText, hasAttachments=$_hasAttachments');
     
     if (_hasText || _hasAttachments) {
-      print('🚀 محاولة إرسال الملاحظة...');
+  if (kDebugMode) debugPrint('🚀 محاولة إرسال الملاحظة...');
       final content = _controller.text.trim();
       
       if (content.isEmpty) {
-        print('❌ النص فارغ بعد trim!');
+  if (kDebugMode) debugPrint('❌ النص فارغ بعد trim!');
         return;
       }
 
       // استدعاء callback function إذا كانت متوفرة
       if (widget.onSend != null) {
-        print('📞 استدعاء onSend callback...');
+  if (kDebugMode) debugPrint('📞 استدعاء onSend callback...');
         
         // مسح النص وإبلاغ الـ parent فوراً قبل استدعاء onSend
         _controller.clear();
@@ -95,47 +93,40 @@ class ComposerBarState extends State<ComposerBar> {
         // الآن استدعاء onSend
         widget.onSend!(content);
       } else {
-        // في حالة عدم توفر callback، استخدم الطريقة القديمة
         try {
-          print('💾 استدعاء NotesRepository...');
           final repo = NotesRepository();
           final success = await repo.saveNoteSimple(content);
-          print('✅ نتيجة الحفظ: $success');
-          
+
           if (success) {
-            print('🎉 تم الحفظ بنجاح!');
             _controller.clear();
             setState(() {
               _hasText = false;
             });
-            // إبلاغ الـ parent أن النص تم مسحه
             if (widget.onTextChanged != null) {
               widget.onTextChanged!(false);
             }
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('تم حفظ الملاحظة بنجاح! ✅'))
+                SnackBar(content: Text(AppLocalizations.of(context)!.composerSavedSuccess))
               );
             }
           } else {
-            print('❌ فشل الحفظ');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('فشل في حفظ الملاحظة ❌'))
+                SnackBar(content: Text(AppLocalizations.of(context)!.composerSavedFailure))
               );
             }
           }
         } catch (e) {
-          print('💥 خطأ: $e');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('خطأ: $e'))
+              SnackBar(content: Text(AppLocalizations.of(context)!.composerError(e.toString())))
             );
           }
         }
       }
     } else {
-      print('➕ فتح خيارات الإضافة...');
+  if (kDebugMode) debugPrint('➕ فتح خيارات الإضافة...');
       _showAddOptions();
     }
   }
@@ -154,7 +145,7 @@ class ComposerBarState extends State<ComposerBar> {
             children: <Widget>[
               ListTile(
                 leading: const Icon(Icons.note),
-                title: const Text('Simple note'),
+                title: Text(AppLocalizations.of(context)!.composerOptionSimple),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddNoteScreen(noteType: NoteType.simple)));
@@ -162,7 +153,7 @@ class ComposerBarState extends State<ComposerBar> {
               ),
               ListTile(
                 leading: const Icon(Icons.article),
-                title: const Text('Article / long note'),
+                title: Text(AppLocalizations.of(context)!.composerOptionArticle),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddNoteScreen(noteType: NoteType.article)));
@@ -170,7 +161,7 @@ class ComposerBarState extends State<ComposerBar> {
               ),
               ListTile(
                 leading: const Icon(Icons.email),
-                title: const Text('Email / formatted message'),
+                title: Text(AppLocalizations.of(context)!.composerOptionEmail),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddNoteScreen(noteType: NoteType.email)));
@@ -178,7 +169,7 @@ class ComposerBarState extends State<ComposerBar> {
               ),
               ListTile(
                 leading: const Icon(Icons.check_box),
-                title: const Text('Checklist / tasks'),
+                title: Text(AppLocalizations.of(context)!.composerOptionChecklist),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddNoteScreen(noteType: NoteType.checklist)));
@@ -186,7 +177,7 @@ class ComposerBarState extends State<ComposerBar> {
               ),
               ListTile(
                 leading: const Icon(Icons.close),
-                title: const Text('Cancel'),
+                title: Text(AppLocalizations.of(context)!.composerOptionCancel),
                 onTap: () => Navigator.of(ctx).pop(),
               ),
             ],
@@ -198,7 +189,7 @@ class ComposerBarState extends State<ComposerBar> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('ComposerBar: build called, _hasText = $_hasText');
+  if (kDebugMode) debugPrint('ComposerBar: build called, _hasText = $_hasText');
     return SafeArea(
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.5, vertical: Responsive.hp(context, 1.2)),
@@ -211,7 +202,7 @@ class ComposerBarState extends State<ComposerBar> {
               child: TextField(
                 controller: _controller,
                 decoration: InputDecoration.collapsed(
-                  hintText: 'اكتب ملاحظة سريعة... (أو اضغط على أيقونة الكتابة للخيارات المتقدمة)',
+                  hintText: AppLocalizations.of(context)!.composerHint,
                 ),
                 style: TextStyle(fontSize: Layout.bodyFont(context)),
                 onSubmitted: (text) {
@@ -224,7 +215,7 @@ class ComposerBarState extends State<ComposerBar> {
             GestureDetector(
               onLongPress: _openAddNote,
               child: IconButton(
-                tooltip: _hasText || _hasAttachments ? 'إرسال' : 'إنشاء ملاحظة',
+                  tooltip: _hasText || _hasAttachments ? AppLocalizations.of(context)!.composerSend : AppLocalizations.of(context)!.composerCreate,
                 onPressed: () {
                   debugPrint('ComposerBar: IconButton pressed');
                   _handlePrimaryAction();

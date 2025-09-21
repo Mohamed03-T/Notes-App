@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/layout/layout_helpers.dart';
+import '../../generated/l10n/app_localizations.dart';
 
 enum NoteType { simple, article, email, checklist }
 
@@ -8,18 +9,20 @@ class AddNoteScreen extends StatelessWidget {
 
 	const AddNoteScreen({Key? key, this.noteType = NoteType.simple}) : super(key: key);
 
-	String _titleForType() {
+		String _titleForType(BuildContext context) {
+			final l10n = AppLocalizations.of(context)!;
 			switch (noteType) {
 				case NoteType.article:
-					return 'New Article';
+					return l10n.addNoteTitleArticle;
 				case NoteType.email:
-					return 'New Email';
+					return l10n.addNoteTitleEmail;
 				case NoteType.checklist:
-					return 'New Checklist';
+					return l10n.addNoteTitleChecklist;
 				case NoteType.simple:
-					return 'Add Note';
+				default:
+					return l10n.addNoteTitleSimple;
 			}
-	}
+		}
 
 	@override
 	Widget build(BuildContext context) {
@@ -27,8 +30,8 @@ class AddNoteScreen extends StatelessWidget {
 			final reserved = kToolbarHeight + MediaQuery.of(context).padding.top + 24; // appbar + status + margins
 			final avail = Layout.availableHeight(context, reservedHeight: reserved);
 
-			return Scaffold(
-				appBar: AppBar(title: Text(_titleForType())),
+					return Scaffold(
+						appBar: AppBar(title: Text(_titleForType(context))),
 				body: SingleChildScrollView(
 					padding: EdgeInsets.all(Layout.horizontalPadding(context)),
 					child: ConstrainedBox(
@@ -37,7 +40,7 @@ class AddNoteScreen extends StatelessWidget {
 							child: Column(
 								children: [
 									Expanded(
-										child: TextField(
+														child: TextField(
 											controller: controller,
 											maxLines: null,
 											expands: true,
@@ -48,7 +51,7 @@ class AddNoteScreen extends StatelessWidget {
 									SizedBox(height: Layout.smallGap(context)),
 									SizedBox(
 										width: double.infinity,
-										child: ElevatedButton(onPressed: () {}, child: Text('Save', style: TextStyle(fontSize: Layout.bodyFont(context)))),
+														child: ElevatedButton(onPressed: () {}, child: Text(AppLocalizations.of(context)!.save, style: TextStyle(fontSize: Layout.bodyFont(context)))),
 									)
 								],
 							),

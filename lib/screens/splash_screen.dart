@@ -93,9 +93,9 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).primaryColor.withOpacity(0.1),
+              Color.fromRGBO((Theme.of(context).primaryColor.r * 255).round(), (Theme.of(context).primaryColor.g * 255).round(), (Theme.of(context).primaryColor.b * 255).round(), 0.1),
               Theme.of(context).scaffoldBackgroundColor,
-              Theme.of(context).primaryColor.withOpacity(0.05),
+              Color.fromRGBO((Theme.of(context).primaryColor.r * 255).round(), (Theme.of(context).primaryColor.g * 255).round(), (Theme.of(context).primaryColor.b * 255).round(), 0.05),
             ],
           ),
         ),
@@ -156,7 +156,12 @@ class _SplashScreenState extends State<SplashScreen>
                       AppLocalizations.of(context)!.splashTagline,
                       style: TextStyle(
                         fontSize: Layout.bodyFont(context),
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        color: Color.fromRGBO(
+                          ((Theme.of(context).textTheme.bodyMedium?.color?.r ?? 0) * 255).round(),
+                          ((Theme.of(context).textTheme.bodyMedium?.color?.g ?? 0) * 255).round(),
+                          ((Theme.of(context).textTheme.bodyMedium?.color?.b ?? 0) * 255).round(),
+                          0.7,
+                        ),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -187,7 +192,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Theme.of(context).primaryColor.withOpacity(0.6),
+                                  Color.fromRGBO((Theme.of(context).primaryColor.r * 255).round(), (Theme.of(context).primaryColor.g * 255).round(), (Theme.of(context).primaryColor.b * 255).round(), 0.6),
                                 ),
                               ),
                             ),
