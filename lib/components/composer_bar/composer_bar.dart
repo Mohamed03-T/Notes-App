@@ -12,7 +12,7 @@ class ComposerBar extends StatefulWidget {
   // دالة callback تستدعى عند تغيير حالة النص (موجود/غير موجود)
   final void Function(bool)? onTextChanged;
 
-  const ComposerBar({Key? key, this.onSend, this.attachments, this.onTextChanged}) : super(key: key);
+  const ComposerBar({super.key, this.onSend, this.attachments, this.onTextChanged});
 
   @override
   ComposerBarState createState() => ComposerBarState();

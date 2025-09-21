@@ -9,10 +9,10 @@ class AddFolderScreen extends StatefulWidget {
   final String pageId;
   final PageModel page;
 
-  const AddFolderScreen({Key? key, required this.pageId, required this.page}) : super(key: key);
+  const AddFolderScreen({super.key, required this.pageId, required this.page});
 
   @override
-  _AddFolderScreenState createState() => _AddFolderScreenState();
+  State<AddFolderScreen> createState() => _AddFolderScreenState();
 }
 
 class _AddFolderScreenState extends State<AddFolderScreen> {

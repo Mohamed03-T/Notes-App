@@ -7,7 +7,7 @@ import '../../generated/l10n/app_localizations.dart';
 class NoteCard extends StatelessWidget {
   final NoteModel note;
 
-  const NoteCard({Key? key, required this.note}) : super(key: key);
+  const NoteCard({super.key, required this.note});
 
   @override
   Widget build(BuildContext context) {

@@ -8,7 +8,7 @@ class PageCard extends StatelessWidget {
   final int foldersCount;
   final VoidCallback? onTap;
 
-  const PageCard({Key? key, required this.title, this.foldersCount = 0, this.onTap}) : super(key: key);
+  const PageCard({super.key, required this.title, this.foldersCount = 0, this.onTap});
 
   @override
   Widget build(BuildContext context) {

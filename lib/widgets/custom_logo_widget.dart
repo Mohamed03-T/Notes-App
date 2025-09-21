@@ -6,11 +6,11 @@ class CustomLogoWidget extends StatelessWidget {
   final String? logoText;
 
   const CustomLogoWidget({
-    Key? key,
+    super.key,
     this.size = 200,
     this.gradientColors,
     this.logoText,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

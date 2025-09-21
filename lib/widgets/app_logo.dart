@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+// 'package:flutter/services.dart' not needed; removed
 import '../core/utils/app_assets.dart';
 
 class AppLogo extends StatelessWidget {
@@ -10,26 +10,24 @@ class AppLogo extends StatelessWidget {
   final String? text;
 
   const AppLogo({
-    Key? key,
+    super.key,
     this.size = 80,
     this.color,
     this.showText = false,
     this.text,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // الشعار - بدون تأثيرات مبالغ فيها
-        Container(
+        SizedBox(
           width: size,
           height: size,
           child: _buildLogoWidget(context),
         ),
-        
-        // النص إذا كان مطلوباً
+
         if (showText) ...[
           const SizedBox(height: 12),
           Text(
@@ -86,10 +84,10 @@ class AppLogoSmall extends StatelessWidget {
   final VoidCallback? onTap;
 
   const AppLogoSmall({
-    Key? key,
+    super.key,
     this.size = 40, // زيادة الحجم من 32 إلى 40
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

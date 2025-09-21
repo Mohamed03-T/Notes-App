@@ -7,7 +7,7 @@ enum NoteType { simple, article, email, checklist }
 class AddNoteScreen extends StatelessWidget {
 	final NoteType noteType;
 
-	const AddNoteScreen({Key? key, this.noteType = NoteType.simple}) : super(key: key);
+		const AddNoteScreen({super.key, this.noteType = NoteType.simple});
 
 		String _titleForType(BuildContext context) {
 			final l10n = AppLocalizations.of(context)!;

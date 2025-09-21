@@ -11,10 +11,10 @@ class FolderNotesScreen extends StatefulWidget {
   final String pageId;
   final String folderId;
 
-  const FolderNotesScreen({Key? key, required this.pageId, required this.folderId}) : super(key: key);
+  const FolderNotesScreen({super.key, required this.pageId, required this.folderId});
 
   @override
-  _FolderNotesScreenState createState() => _FolderNotesScreenState();
+  State<FolderNotesScreen> createState() => _FolderNotesScreenState();
 }
 
 class _FolderNotesScreenState extends State<FolderNotesScreen> {

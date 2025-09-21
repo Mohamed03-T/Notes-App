@@ -27,7 +27,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final int? totalPagesCount; // العدد الكلي للصفحات
 
   const TopBar({
-    Key? key,
+    super.key,
     this.pages = const [],
     this.currentPageIndex = 0,
     this.onPageSelected,
@@ -36,7 +36,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.onAddPagePressed,
     this.onSettingsPressed,
     this.totalPagesCount,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

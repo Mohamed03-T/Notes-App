@@ -12,7 +12,7 @@ class FolderCard extends StatefulWidget {
   final VoidCallback? onDoubleTap; // إضافة callback للنقر المزدوج
   final bool isDragging;  // add flag
 
-  const FolderCard({Key? key, required this.folder, this.onTap, this.onDelete, this.onDoubleTap, this.isDragging = false}) : super(key: key);
+  const FolderCard({super.key, required this.folder, this.onTap, this.onDelete, this.onDoubleTap, this.isDragging = false});
 
   @override
   State<FolderCard> createState() => _FolderCardState();
@@ -212,7 +212,15 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                                         spacing: 8, runSpacing: 8,
                                         children: colors.map((c) => GestureDetector(
                                           onTap: () => Navigator.pop(ctx, c),
-                        child: Container(width: Responsive.wp(context, 8), height: Responsive.wp(context, 8), decoration: BoxDecoration(color: c, shape: BoxShape.circle, border: widget.folder.backgroundColor == c ? Border.all(color: Colors.white, width: 2) : null)),
+                                          child: Container(
+                                            width: Responsive.wp(context, 8),
+                                            height: Responsive.wp(context, 8),
+                                            decoration: BoxDecoration(
+                                              color: c,
+                                              shape: BoxShape.circle,
+                                              border: widget.folder.backgroundColor == c ? Border.all(color: Colors.white, width: 2) : null,
+                                            ),
+                                          ),
                                         )).toList(),
                                       ),
                                     ),
@@ -302,79 +310,50 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
 
   Widget _buildNotesPreview() {
     final notesToShow = widget.folder.notes.take(3).toList();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        ...notesToShow.asMap().entries.map((entry) {
-          final index = entry.key;
-          final note = entry.value;
-          final isLast = index == notesToShow.length - 1;
-          
-          return Container(
-            margin: EdgeInsets.only(bottom: isLast ? 0 : 1),
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.05),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.1),
-                width: 1,
+      children: notesToShow.map((note) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.05),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.1),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 1),
+                width: 3,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.6),
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 1),
-                  width: 3,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.6),
-                    shape: BoxShape.circle,
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  note.content.split(' ').take(3).join(' ') + (note.content.split(' ').length > 3 ? '...' : ''),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.getTextPrimary(context),
+                    fontSize: 11,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    note.content.split(' ').take(3).join(' ')
-                      + (note.content.split(' ').length > 3 ? '...' : ''),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.getTextPrimary(context),
-                     
-                      fontSize: 11,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-        
-        // إزالة عنصر "المزيد" لتجنب overflow
-        // if (widget.folder.notes.length > 2)
-        //   Padding(
-        //     padding: const EdgeInsets.only(top: 6),
-        //     child: Container(
-        //       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        //       decoration: BoxDecoration(
-        //         color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-        //         borderRadius: BorderRadius.circular(12),
-        //       ),
-        //       child: Text(
-        //         'و ${widget.folder.notes.length - 2} أخرى...',
-        //         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        //           color: Theme.of(context).colorScheme.secondary,
-        //           fontWeight: FontWeight.w500,
-        //           fontSize: 9,
-        //         ),
-        //       ),
-        //     ),
-        //   ),
-      ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 

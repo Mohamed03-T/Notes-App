@@ -6,10 +6,10 @@ import '../../generated/l10n/app_localizations.dart';
 import '../../utils/responsive.dart';
 
 class AllPagesScreen extends StatefulWidget {
-  const AllPagesScreen({Key? key}) : super(key: key);
+  const AllPagesScreen({super.key});
 
   @override
-  _AllPagesScreenState createState() => _AllPagesScreenState();
+  State<AllPagesScreen> createState() => _AllPagesScreenState();
 }
 
 class _AllPagesScreenState extends State<AllPagesScreen> {

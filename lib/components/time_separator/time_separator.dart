@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class TimeSeparator extends StatelessWidget {
   final String label;
 
-  const TimeSeparator({Key? key, required this.label}) : super(key: key);
+  const TimeSeparator({super.key, required this.label});
 
   @override
   Widget build(BuildContext context) {

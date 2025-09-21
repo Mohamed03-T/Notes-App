@@ -8,7 +8,7 @@ import '../../generated/l10n/app_localizations.dart';
 class PageFoldersScreen extends StatelessWidget {
   final String pageId;
 
-  const PageFoldersScreen({Key? key, required this.pageId}) : super(key: key);
+  const PageFoldersScreen({super.key, required this.pageId});
 
   @override
   Widget build(BuildContext context) {

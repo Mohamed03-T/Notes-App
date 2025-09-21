@@ -15,10 +15,10 @@ import 'add_page_screen.dart';
 import '../settings/settings_screen.dart';
 
 class NotesHome extends StatefulWidget {
-  const NotesHome({Key? key}) : super(key: key);
+  const NotesHome({super.key});
 
   @override
-  _NotesHomeState createState() => _NotesHomeState();
+  State<NotesHome> createState() => _NotesHomeState();
 }
 
 class _NotesHomeState extends State<NotesHome> {
@@ -510,11 +510,15 @@ class _NotesHomeState extends State<NotesHome> {
                 ],
               ),
             )
-          : GridView.count(
-          crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : 2,
-          padding: EdgeInsets.all(Layout.horizontalPadding(context)),
-          childAspectRatio: MediaQuery.of(context).size.width > 800 ? 0.95 : 0.85,
-            children: folderList.map((f) {
+          : LayoutBuilder(
+            builder: (context, constraints) {
+              final cols = constraints.maxWidth > 1000 ? 4 : (constraints.maxWidth > 600 ? 3 : 2);
+              final aspect = constraints.maxWidth > 1000 ? 0.95 : (constraints.maxWidth > 600 ? 0.9 : 0.85);
+              return GridView.count(
+                crossAxisCount: cols,
+                padding: EdgeInsets.all(Layout.horizontalPadding(context)),
+                childAspectRatio: aspect,
+                children: folderList.map((f) {
               final targetIndex = folderList.indexOf(f);
               return DragTarget<FolderModel>(
                 onWillAcceptWithDetails: (details) => details.data != f,
@@ -687,8 +691,10 @@ class _NotesHomeState extends State<NotesHome> {
                 },
               );
             }).toList(),
+              );
+            },
           ),
-      ),
+        ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push<String>(

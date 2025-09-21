@@ -4,7 +4,7 @@ class FullScreenModal extends StatelessWidget {
   final Widget child;
   final String title;
 
-  const FullScreenModal({Key? key, required this.child, this.title = ''}) : super(key: key);
+  const FullScreenModal({super.key, required this.child, this.title = ''});
 
   @override
   Widget build(BuildContext context) {

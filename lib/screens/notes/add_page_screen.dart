@@ -5,10 +5,10 @@ import '../../utils/responsive.dart';
 import '../../generated/l10n/app_localizations.dart';
 
 class AddPageScreen extends StatefulWidget {
-  const AddPageScreen({Key? key}) : super(key: key);
+  const AddPageScreen({super.key});
 
   @override
-  _AddPageScreenState createState() => _AddPageScreenState();
+  State<AddPageScreen> createState() => _AddPageScreenState();
 }
 
 class _AddPageScreenState extends State<AddPageScreen> {
