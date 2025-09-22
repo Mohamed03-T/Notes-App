@@ -143,6 +143,10 @@ class NotesRepository {
             colorValue: noteData['colorValue'] is int
                 ? noteData['colorValue']
                 : (noteData['colorValue'] is String ? int.tryParse(noteData['colorValue']) : null),
+            isPinned: noteData['isPinned'] == true,
+            isArchived: noteData['isArchived'] == true,
+            isDeleted: noteData['isDeleted'] == true,
+            updatedAt: noteData['updatedAt'] != null ? DateTime.fromMillisecondsSinceEpoch(noteData['updatedAt']) : null,
           );
           
           // Check if note has folder info, otherwise default to first folder
@@ -430,6 +434,10 @@ class NotesRepository {
         'folderId': 'f1',
         'createdAt': DateTime.now().millisecondsSinceEpoch,
         'colorValue': colorValue,
+        'isPinned': false,
+        'isArchived': false,
+        'isDeleted': false,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
       };
       debugPrint('NotesRepository: created noteData = $noteData');
       
@@ -485,6 +493,10 @@ class NotesRepository {
         'folderId': folderId,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
         'colorValue': colorValue,
+        'isPinned': false,
+        'isArchived': false,
+        'isDeleted': false,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
       };
       debugPrint('NotesRepository: created noteData = $noteData');
       
@@ -850,6 +862,123 @@ class NotesRepository {
       debugPrint('❌ فشل في استرداد البيانات من النسخة الاحتياطية: $e');
     }
     return false;
+  }
+
+  // Helper to persist the entire notes list from in-memory structure
+  Future<void> _persistAllNotes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final allNotes = <String>[];
+      for (final p in _pages) {
+        for (final f in p.folders) {
+          for (final n in f.notes) {
+            final noteData = {
+              'id': n.id,
+              'content': n.content,
+              'type': 'simple',
+              'pageId': p.id,
+              'folderId': f.id,
+              'createdAt': n.createdAt.millisecondsSinceEpoch,
+              'colorValue': n.colorValue,
+              'isPinned': n.isPinned,
+              'isArchived': n.isArchived,
+              'isDeleted': n.isDeleted,
+              'updatedAt': n.updatedAt?.millisecondsSinceEpoch ?? n.createdAt.millisecondsSinceEpoch,
+            };
+            allNotes.add(jsonEncode(noteData));
+          }
+        }
+      }
+      await prefs.setStringList(_notesKey, allNotes);
+      debugPrint('✅ تم حفظ جميع الملاحظات (${allNotes.length})');
+    } catch (e) {
+      debugPrint('❌ فشل في حفظ جميع الملاحظات: $e');
+    }
+  }
+
+  // Toggle pinned state
+  Future<void> togglePin(String pageId, String folderId, String noteId) async {
+    final folder = getFolder(pageId, folderId);
+    if (folder == null) return;
+    final idx = folder.notes.indexWhere((n) => n.id == noteId);
+    if (idx == -1) return;
+    final old = folder.notes[idx];
+    final updated = NoteModel(
+      id: old.id,
+      type: old.type,
+      content: old.content,
+      createdAt: old.createdAt,
+      colorValue: old.colorValue,
+      isPinned: !old.isPinned,
+      isArchived: old.isArchived,
+      isDeleted: old.isDeleted,
+      updatedAt: DateTime.now(),
+    );
+    folder.notes[idx] = updated;
+    await _persistAllNotes();
+  }
+
+  Future<void> toggleArchive(String pageId, String folderId, String noteId) async {
+    final folder = getFolder(pageId, folderId);
+    if (folder == null) return;
+    final idx = folder.notes.indexWhere((n) => n.id == noteId);
+    if (idx == -1) return;
+    final old = folder.notes[idx];
+    final updated = NoteModel(
+      id: old.id,
+      type: old.type,
+      content: old.content,
+      createdAt: old.createdAt,
+      colorValue: old.colorValue,
+      isPinned: old.isPinned,
+      isArchived: !old.isArchived,
+      isDeleted: old.isDeleted,
+      updatedAt: DateTime.now(),
+    );
+    folder.notes[idx] = updated;
+    await _persistAllNotes();
+  }
+
+  Future<void> deleteNote(String pageId, String folderId, String noteId) async {
+    final folder = getFolder(pageId, folderId);
+    if (folder == null) return;
+    final idx = folder.notes.indexWhere((n) => n.id == noteId);
+    if (idx == -1) return;
+    final old = folder.notes[idx];
+    final updated = NoteModel(
+      id: old.id,
+      type: old.type,
+      content: old.content,
+      createdAt: old.createdAt,
+      colorValue: old.colorValue,
+      isPinned: old.isPinned,
+      isArchived: old.isArchived,
+      isDeleted: true,
+      updatedAt: DateTime.now(),
+    );
+    folder.notes[idx] = updated;
+    await _persistAllNotes();
+  }
+
+  Future<void> restoreNote(String pageId, String folderId, String noteId) async {
+    final folder = getFolder(pageId, folderId);
+    if (folder == null) return;
+    final idx = folder.notes.indexWhere((n) => n.id == noteId);
+    if (idx == -1) return;
+    final old = folder.notes[idx];
+    final updated = NoteModel(
+      id: old.id,
+      type: old.type,
+      content: old.content,
+      createdAt: old.createdAt,
+      colorValue: old.colorValue,
+      isPinned: old.isPinned,
+      isArchived: old.isArchived,
+      isDeleted: false,
+      updatedAt: DateTime.now(),
+    );
+    folder.notes[idx] = updated;
+    await _persistAllNotes();
   }
 
   // Add retry mechanism for critical operations
