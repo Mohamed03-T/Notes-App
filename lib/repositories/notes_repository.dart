@@ -412,7 +412,7 @@ class NotesRepository {
     }
   }
 
-  Future<bool> saveNoteSimple(String content, {String type = 'simple', int? colorValue}) async {
+  Future<bool> saveNoteSimple(String content, {String type = 'simple', int? colorValue, List<String>? attachments}) async {
     debugPrint('NotesRepository: saveNoteSimple called with content="$content"');
     final id = Uuid().v4();
     debugPrint('NotesRepository: generated id = $id');
@@ -439,6 +439,7 @@ class NotesRepository {
         'isArchived': false,
         'isDeleted': false,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'attachments': attachments ?? [],
       };
       debugPrint('NotesRepository: created noteData = $noteData');
       
@@ -449,7 +450,7 @@ class NotesRepository {
       debugPrint('NotesRepository: saved to SharedPreferences');
       
       // Also add to in-memory for immediate UI update
-  final newNote = NoteModel(id: id, type: NoteType.text, content: content, colorValue: colorValue);
+  final newNote = NoteModel(id: id, type: NoteType.text, content: content, colorValue: colorValue, attachments: attachments);
       final folder = getFolder('p1', 'f1');
       if (folder != null) {
         folder.notes.add(newNote);
@@ -472,7 +473,7 @@ class NotesRepository {
     }
   }
 
-  Future<bool> saveNoteToFolder(String content, String pageId, String folderId, {String type = 'simple', int? colorValue}) async {
+  Future<bool> saveNoteToFolder(String content, String pageId, String folderId, {String type = 'simple', int? colorValue, List<String>? attachments}) async {
     debugPrint('NotesRepository: saveNoteToFolder called with content="$content", pageId="$pageId", folderId="$folderId"');
     final id = Uuid().v4();
     debugPrint('NotesRepository: generated id = $id');
@@ -498,6 +499,7 @@ class NotesRepository {
         'isArchived': false,
         'isDeleted': false,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'attachments': attachments ?? [],
       };
       debugPrint('NotesRepository: created noteData = $noteData');
       
@@ -516,7 +518,7 @@ class NotesRepository {
       }
       
       debugPrint('NotesRepository: saved to SharedPreferences successfully');      // Also add to in-memory for immediate UI update
-  final newNote = NoteModel(id: id, type: NoteType.text, content: content, colorValue: colorValue);
+  final newNote = NoteModel(id: id, type: NoteType.text, content: content, colorValue: colorValue, attachments: attachments);
       final folder = getFolder(pageId, folderId);
       if (folder != null) {
         folder.notes.add(newNote);

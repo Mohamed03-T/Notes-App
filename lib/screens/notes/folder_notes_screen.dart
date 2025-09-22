@@ -36,14 +36,14 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
     setState(() {});
   }
 
-  Future<void> _saveNote(String text, int? colorValue) async {
+  Future<void> _saveNote(String text, int? colorValue, List<String>? attachments) async {
     if (repo == null) return;
     
     // حفظ الملاحظة في المجلد المحدد
     debugPrint('💾 حفظ ملاحظة في المجلد: ${widget.folderId}');
     debugPrint('📝 النص: $text');
 
-  final success = await repo!.saveNoteToFolder(text, widget.pageId, widget.folderId, colorValue: colorValue);
+  final success = await repo!.saveNoteToFolder(text, widget.pageId, widget.folderId, colorValue: colorValue, attachments: attachments);
     
     if (success) {
       setState(() {
