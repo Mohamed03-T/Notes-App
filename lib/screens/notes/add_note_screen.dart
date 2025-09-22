@@ -11,17 +11,16 @@ class AddNoteScreen extends StatelessWidget {
 
 		String _titleForType(BuildContext context) {
 			final l10n = AppLocalizations.of(context)!;
-			switch (noteType) {
-				case NoteType.article:
-					return l10n.addNoteTitleArticle;
-				case NoteType.email:
-					return l10n.addNoteTitleEmail;
-				case NoteType.checklist:
-					return l10n.addNoteTitleChecklist;
-				case NoteType.simple:
-				default:
-					return l10n.addNoteTitleSimple;
-			}
+				switch (noteType) {
+					case NoteType.article:
+						return l10n.addNoteTitleArticle;
+					case NoteType.email:
+						return l10n.addNoteTitleEmail;
+					case NoteType.checklist:
+						return l10n.addNoteTitleChecklist;
+					case NoteType.simple:
+						return l10n.addNoteTitleSimple;
+				}
 		}
 
 	@override

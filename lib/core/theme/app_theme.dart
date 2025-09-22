@@ -82,11 +82,11 @@ class AppTheme {
       secondary: primaryGreen,
       tertiary: primaryOrange,
       surface: lightSurface,
-      background: lightBackground,
+      // 'background' is deprecated: prefer using 'surface' for surfaces
+      // Map the previous background/text roles into surface/onSurface
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: lightTextPrimary,
-      onBackground: lightTextPrimary,
     ),
 
     // خلفية التطبيق
@@ -221,11 +221,10 @@ class AppTheme {
       secondary: primaryGreen,
       tertiary: primaryOrange,
       surface: darkSurface,
-      background: darkBackground,
+      // 'background' removed (deprecated). Use scaffoldBackgroundColor above.
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: darkTextPrimary,
-      onBackground: darkTextPrimary,
     ),
 
     // خلفية التطبيق
