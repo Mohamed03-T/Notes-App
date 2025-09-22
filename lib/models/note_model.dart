@@ -12,6 +12,7 @@ class NoteModel {
   final bool isArchived;
   final bool isDeleted;
   final DateTime? updatedAt;
+  final List<String>? attachments;
 
   NoteModel({
     required this.id,
@@ -23,6 +24,7 @@ class NoteModel {
     this.isArchived = false,
     this.isDeleted = false,
     this.updatedAt,
+    this.attachments,
   }) : createdAt = createdAt ?? DateTime.now();
 
   Color? get color => colorValue != null ? Color(colorValue!) : null;

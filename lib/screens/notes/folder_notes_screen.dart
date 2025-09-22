@@ -100,7 +100,36 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
                   child: ListView(
                     children: folder.notes.map((n) => Padding(
                       padding: EdgeInsets.only(bottom: Layout.smallGap(context)),
-                      child: NoteCard(note: n),
+                      child: NoteCard(
+                        note: n,
+                        onPin: () async {
+                          await repo!.togglePin(widget.pageId, widget.folderId, n.id);
+                          setState(() {});
+                        },
+                        onArchive: () async {
+                          await repo!.toggleArchive(widget.pageId, widget.folderId, n.id);
+                          setState(() {});
+                        },
+                        onDelete: () async {
+                          await repo!.deleteNote(widget.pageId, widget.folderId, n.id);
+                          setState(() {});
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Note deleted'),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                onPressed: () async {
+                                  await repo!.restoreNote(widget.pageId, widget.folderId, n.id);
+                                  setState(() {});
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                        onShare: () {
+                          // simple share: copy to clipboard or integrate share plugin later
+                        },
+                      ),
                     )).toList(),
                   ),
                 ),

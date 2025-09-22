@@ -147,6 +147,7 @@ class NotesRepository {
             isArchived: noteData['isArchived'] == true,
             isDeleted: noteData['isDeleted'] == true,
             updatedAt: noteData['updatedAt'] != null ? DateTime.fromMillisecondsSinceEpoch(noteData['updatedAt']) : null,
+            attachments: (noteData['attachments'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
           );
           
           // Check if note has folder info, otherwise default to first folder
@@ -884,6 +885,7 @@ class NotesRepository {
               'isArchived': n.isArchived,
               'isDeleted': n.isDeleted,
               'updatedAt': n.updatedAt?.millisecondsSinceEpoch ?? n.createdAt.millisecondsSinceEpoch,
+              'attachments': n.attachments ?? [],
             };
             allNotes.add(jsonEncode(noteData));
           }

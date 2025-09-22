@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../../generated/l10n/app_localizations.dart';
 import '../../screens/notes/add_note_screen.dart';
 import '../../repositories/notes_repository.dart';
+import '../color_picker/dialog_color_picker.dart';
+import '../attachment/attachment_picker.dart';
 import '../../core/layout/layout_helpers.dart';
 import '../../utils/responsive.dart';
 
 class ComposerBar extends StatefulWidget {
-  final void Function(String, int?)? onSend;
+  final void Function(String, int?, List<String>?)? onSend;
   final List<dynamic>? attachments;
   // دالة callback تستدعى عند تغيير حالة النص (موجود/غير موجود)
   final void Function(bool)? onTextChanged;
@@ -50,7 +52,8 @@ class ComposerBarState extends State<ComposerBar> {
     super.dispose();
   }
 
-  bool get _hasAttachments => (widget.attachments?.isNotEmpty ?? false);
+  List<String> _attachments = [];
+  bool get _hasAttachments => _attachments.isNotEmpty || (widget.attachments?.isNotEmpty ?? false);
 
   /// دالة لمسح النص من الخارج (تستدعى من الشاشة الأب عند الضغط على زر الرجوع)
   void clearText() {
@@ -78,7 +81,7 @@ class ComposerBarState extends State<ComposerBar> {
         return;
       }
 
-      // استدعاء callback function إذا كانت متوفرة
+    // استدعاء callback function إذا كانت متوفرة
   if (widget.onSend != null) {
   if (kDebugMode) debugPrint('📞 استدعاء onSend callback...');
         
@@ -92,8 +95,11 @@ class ComposerBarState extends State<ComposerBar> {
           widget.onTextChanged!(false);
         }
         
-        // الآن استدعاء onSend مع لون إن اختير
-        widget.onSend!(content, _selectedColor);
+  // الآن استدعاء onSend مع لون وقائمة المرفقات
+  final allAttachments = <String>[];
+  if (widget.attachments != null) allAttachments.addAll(widget.attachments!.map((e) => e.toString()));
+  allAttachments.addAll(_attachments);
+  widget.onSend!(content, _selectedColor, allAttachments.isEmpty ? null : allAttachments);
       } else {
         try {
           final repo = NotesRepository();
@@ -119,7 +125,7 @@ class ComposerBarState extends State<ComposerBar> {
               );
             }
           }
-        } catch (e) {
+            } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(AppLocalizations.of(context)!.composerError(e.toString())))
@@ -198,19 +204,23 @@ class ComposerBarState extends State<ComposerBar> {
         color: Colors.white,
         child: Row(
           children: [
-            // Simple inline color picker
-            PopupMenuButton<int?>(
+            IconButton(
               tooltip: AppLocalizations.of(context)!.composerOptionSimple,
-              onSelected: (v) => setState(() => _selectedColor = v),
-              itemBuilder: (_) => [
-                PopupMenuItem(child: Text(AppLocalizations.of(context)!.composerOptionCancel), value: null),
-                PopupMenuItem(child: Wrap(spacing:8, children: [
-                  _colorCircle(Colors.white), _colorCircle(0xFFFFCDD2), _colorCircle(0xFFFFE0B2), _colorCircle(0xFFFFF9C4), _colorCircle(0xFFC8E6C9), _colorCircle(0xFFBBDEFB), _colorCircle(0xFFD1C4E9)
-                ]), value: -1),
-              ],
-              child: Icon(Icons.palette, size: Layout.iconSize(context)),
+              onPressed: () async {
+                final picked = await showColorPickerDialog(context, initialColor: _selectedColor);
+                if (picked != null) setState(() => _selectedColor = picked);
+              },
+              icon: Icon(Icons.palette, size: Layout.iconSize(context)),
             ),
-            IconButton(onPressed: () {}, icon: Icon(Icons.photo, size: Layout.iconSize(context))),
+            IconButton(
+              onPressed: () async {
+                final path = await showAttachmentPathDialog(context);
+                if (path != null && path.isNotEmpty) {
+                  setState(() => _attachments.add(path));
+                }
+              },
+              icon: Icon(Icons.photo, size: Layout.iconSize(context)),
+            ),
             IconButton(onPressed: () {}, icon: Icon(Icons.mic, size: Layout.iconSize(context))),
             Expanded(
               child: TextField(
@@ -243,24 +253,5 @@ class ComposerBarState extends State<ComposerBar> {
     );
   }
 
-  Widget _colorCircle(dynamic c) {
-    Color color;
-    if (c is int) color = Color(c);
-    else if (c is Color) color = c;
-    else color = Colors.transparent;
-
-    return GestureDetector(
-      onTap: () => setState(() => _selectedColor = color.value),
-      child: Container(
-        width: 28,
-        height: 28,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-      ),
-    );
-  }
+  // ...existing code...
 }
