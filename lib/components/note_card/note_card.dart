@@ -27,10 +27,14 @@ class NoteCard extends StatelessWidget {
 
     final formatted = DateFormat.yMMMd(l10n.localeName).add_jm().format(note.createdAt);
 
+    final bgColor = note.color ?? Theme.of(context).cardColor;
+    final textColor = (bgColor.computeLuminance() > 0.5) ? Colors.black : Colors.white;
+
     return Card(
+      color: bgColor,
       child: ListTile(
-        title: Text(titleText, style: TextStyle(fontSize: Layout.bodyFont(context))),
-        subtitle: Text(formatted, style: TextStyle(fontSize: Layout.bodyFont(context) * 0.9)),
+        title: Text(titleText, style: TextStyle(fontSize: Layout.bodyFont(context), color: textColor)),
+        subtitle: Text(formatted, style: TextStyle(fontSize: Layout.bodyFont(context) * 0.9, color: textColor.withOpacity(0.9))),
       ),
     );
   }

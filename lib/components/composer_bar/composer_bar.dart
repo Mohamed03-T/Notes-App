@@ -7,7 +7,7 @@ import '../../core/layout/layout_helpers.dart';
 import '../../utils/responsive.dart';
 
 class ComposerBar extends StatefulWidget {
-  final void Function(String)? onSend;
+  final void Function(String, int?)? onSend;
   final List<dynamic>? attachments;
   // دالة callback تستدعى عند تغيير حالة النص (موجود/غير موجود)
   final void Function(bool)? onTextChanged;
@@ -64,6 +64,8 @@ class ComposerBarState extends State<ComposerBar> {
     }
   }
 
+  int? _selectedColor;
+
   Future<void> _handlePrimaryAction() async {
   if (kDebugMode) debugPrint('ComposerBar: primary action pressed, hasText=$_hasText, hasAttachments=$_hasAttachments');
     
@@ -77,7 +79,7 @@ class ComposerBarState extends State<ComposerBar> {
       }
 
       // استدعاء callback function إذا كانت متوفرة
-      if (widget.onSend != null) {
+  if (widget.onSend != null) {
   if (kDebugMode) debugPrint('📞 استدعاء onSend callback...');
         
         // مسح النص وإبلاغ الـ parent فوراً قبل استدعاء onSend
@@ -90,12 +92,12 @@ class ComposerBarState extends State<ComposerBar> {
           widget.onTextChanged!(false);
         }
         
-        // الآن استدعاء onSend
-        widget.onSend!(content);
+        // الآن استدعاء onSend مع لون إن اختير
+        widget.onSend!(content, _selectedColor);
       } else {
         try {
           final repo = NotesRepository();
-          final success = await repo.saveNoteSimple(content);
+          final success = await repo.saveNoteSimple(content, colorValue: _selectedColor);
 
           if (success) {
             _controller.clear();
@@ -196,6 +198,18 @@ class ComposerBarState extends State<ComposerBar> {
         color: Colors.white,
         child: Row(
           children: [
+            // Simple inline color picker
+            PopupMenuButton<int?>(
+              tooltip: AppLocalizations.of(context)!.composerOptionSimple,
+              onSelected: (v) => setState(() => _selectedColor = v),
+              itemBuilder: (_) => [
+                PopupMenuItem(child: Text(AppLocalizations.of(context)!.composerOptionCancel), value: null),
+                PopupMenuItem(child: Wrap(spacing:8, children: [
+                  _colorCircle(Colors.white), _colorCircle(0xFFFFCDD2), _colorCircle(0xFFFFE0B2), _colorCircle(0xFFFFF9C4), _colorCircle(0xFFC8E6C9), _colorCircle(0xFFBBDEFB), _colorCircle(0xFFD1C4E9)
+                ]), value: -1),
+              ],
+              child: Icon(Icons.palette, size: Layout.iconSize(context)),
+            ),
             IconButton(onPressed: () {}, icon: Icon(Icons.photo, size: Layout.iconSize(context))),
             IconButton(onPressed: () {}, icon: Icon(Icons.mic, size: Layout.iconSize(context))),
             Expanded(
@@ -224,6 +238,27 @@ class ComposerBarState extends State<ComposerBar> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _colorCircle(dynamic c) {
+    Color color;
+    if (c is int) color = Color(c);
+    else if (c is Color) color = c;
+    else color = Colors.transparent;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedColor = color.value),
+      child: Container(
+        width: 28,
+        height: 28,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade300),
         ),
       ),
     );

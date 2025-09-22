@@ -140,6 +140,9 @@ class NotesRepository {
             type: NoteType.text,
             content: noteData['content'],
             createdAt: createdAt,
+            colorValue: noteData['colorValue'] is int
+                ? noteData['colorValue']
+                : (noteData['colorValue'] is String ? int.tryParse(noteData['colorValue']) : null),
           );
           
           // Check if note has folder info, otherwise default to first folder
@@ -404,7 +407,7 @@ class NotesRepository {
     }
   }
 
-  Future<bool> saveNoteSimple(String content, {String type = 'simple'}) async {
+  Future<bool> saveNoteSimple(String content, {String type = 'simple', int? colorValue}) async {
     debugPrint('NotesRepository: saveNoteSimple called with content="$content"');
     final id = Uuid().v4();
     debugPrint('NotesRepository: generated id = $id');
@@ -426,6 +429,7 @@ class NotesRepository {
         'pageId': 'p1',
         'folderId': 'f1',
         'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'colorValue': colorValue,
       };
       debugPrint('NotesRepository: created noteData = $noteData');
       
@@ -436,7 +440,7 @@ class NotesRepository {
       debugPrint('NotesRepository: saved to SharedPreferences');
       
       // Also add to in-memory for immediate UI update
-      final newNote = NoteModel(id: id, type: NoteType.text, content: content);
+  final newNote = NoteModel(id: id, type: NoteType.text, content: content, colorValue: colorValue);
       final folder = getFolder('p1', 'f1');
       if (folder != null) {
         folder.notes.add(newNote);
@@ -459,7 +463,7 @@ class NotesRepository {
     }
   }
 
-  Future<bool> saveNoteToFolder(String content, String pageId, String folderId, {String type = 'simple'}) async {
+  Future<bool> saveNoteToFolder(String content, String pageId, String folderId, {String type = 'simple', int? colorValue}) async {
     debugPrint('NotesRepository: saveNoteToFolder called with content="$content", pageId="$pageId", folderId="$folderId"');
     final id = Uuid().v4();
     debugPrint('NotesRepository: generated id = $id');
@@ -480,6 +484,7 @@ class NotesRepository {
         'pageId': pageId,
         'folderId': folderId,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'colorValue': colorValue,
       };
       debugPrint('NotesRepository: created noteData = $noteData');
       
@@ -498,7 +503,7 @@ class NotesRepository {
       }
       
       debugPrint('NotesRepository: saved to SharedPreferences successfully');      // Also add to in-memory for immediate UI update
-      final newNote = NoteModel(id: id, type: NoteType.text, content: content);
+  final newNote = NoteModel(id: id, type: NoteType.text, content: content, colorValue: colorValue);
       final folder = getFolder(pageId, folderId);
       if (folder != null) {
         folder.notes.add(newNote);
