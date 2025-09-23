@@ -4,6 +4,7 @@ import '../../generated/l10n/app_localizations.dart';
 import '../../components/note_card/note_card.dart';
 import '../../components/composer_bar/composer_bar.dart';
 import '../../core/layout/layout_helpers.dart';
+import 'note_detail.dart';
 
 /// شاشة عرض الملاحظات داخل مجلد معين
 /// زر الرجوع يخرج من الشاشة بضغطة واحدة
@@ -102,6 +103,16 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
                       padding: EdgeInsets.only(bottom: Layout.smallGap(context)),
                       child: NoteCard(
                         note: n,
+                        onTap: () async {
+                          final changed = await Navigator.push<bool?>(
+                            context,
+                            MaterialPageRoute(builder: (_) => NoteDetailScreen(pageId: widget.pageId, folderId: widget.folderId, note: n)),
+                          );
+                          if (changed == true) {
+                            if (!mounted) return;
+                            setState(() {});
+                          }
+                        },
                         onPin: () async {
                           await repo!.togglePin(widget.pageId, widget.folderId, n.id);
                           setState(() {});

@@ -985,6 +985,37 @@ class NotesRepository {
     await _persistAllNotes();
   }
 
+  // Update an existing note's fields and persist
+  Future<bool> updateNote(String pageId, String folderId, String noteId, {String? content, int? colorValue, List<String>? attachments, bool? isPinned, bool? isArchived, bool? isDeleted}) async {
+    try {
+      final folder = getFolder(pageId, folderId);
+      if (folder == null) return false;
+      final idx = folder.notes.indexWhere((n) => n.id == noteId);
+      if (idx == -1) return false;
+      final old = folder.notes[idx];
+      final updated = NoteModel(
+        id: old.id,
+        type: old.type,
+        content: content ?? old.content,
+        createdAt: old.createdAt,
+        colorValue: colorValue ?? old.colorValue,
+        isPinned: isPinned ?? old.isPinned,
+        isArchived: isArchived ?? old.isArchived,
+        isDeleted: isDeleted ?? old.isDeleted,
+        updatedAt: DateTime.now(),
+        attachments: attachments ?? old.attachments,
+      );
+      folder.notes[idx] = updated;
+      _updateFolderTimestamp(pageId, folderId);
+      _hasNewChanges = true;
+      await _persistAllNotes();
+      return true;
+    } catch (e) {
+      debugPrint('❌ فشل في تحديث الملاحظة: $e');
+      return false;
+    }
+  }
+
   // Add retry mechanism for critical operations
   Future<T?> _retryOperation<T>(Future<T> Function() operation, {int maxRetries = 3}) async {
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
