@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../repositories/notes_repository.dart';
 import '../../generated/l10n/app_localizations.dart';
 import '../../components/note_card/note_card.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../components/composer_bar/composer_bar.dart';
 import '../../core/layout/layout_helpers.dart';
 import 'note_detail.dart';
@@ -137,8 +138,17 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
                             ),
                           );
                         },
-                        onShare: () {
-                          // simple share: copy to clipboard or integrate share plugin later
+                        onShare: () async {
+                          try {
+                            if ((n.attachments ?? []).isNotEmpty) {
+                              final xfiles = (n.attachments ?? []).map((p) => XFile(p)).toList();
+                              await Share.shareXFiles(xfiles, text: n.content);
+                            } else {
+                              await Share.share(n.content);
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Share failed')));
+                          }
                         },
                       ),
                     )).toList(),
