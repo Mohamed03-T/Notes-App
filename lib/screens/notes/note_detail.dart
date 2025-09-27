@@ -42,8 +42,14 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     final repo = await NotesRepository.instance;
     final success = await repo.updateNote(widget.pageId, widget.folderId, widget.note.id, content: _controller.text.trim(), colorValue: _color, attachments: _attachments);
     setState(() => _saving = false);
-    if (success) Navigator.pop(context, true);
-    else ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.error)));
+    if (success) {
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } else {
+      final messenger = ScaffoldMessenger.of(context);
+      final l10n = AppLocalizations.of(context);
+      messenger.showSnackBar(SnackBar(content: Text(l10n?.error ?? 'Error')));
+    }
   }
 
   @override
@@ -65,6 +71,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                 ElevatedButton.icon(
                   onPressed: () async {
                     final picked = await showColorPickerDialog(context, initialColor: _color);
+                    if (!mounted) return;
                     if (picked != null) setState(() => _color = picked);
                   },
                   icon: const Icon(Icons.palette),
@@ -74,6 +81,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                 ElevatedButton.icon(
                   onPressed: () async {
                     final path = await showAttachmentPathDialog(context);
+                    if (!mounted) return;
                     if (path != null && path.isNotEmpty) setState(() => _attachments.add(path));
                   },
                   icon: const Icon(Icons.attach_file),

@@ -84,6 +84,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final primary = Theme.of(context).primaryColor;
+    final bodyColor = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black;
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -93,9 +97,9 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color.fromRGBO((Theme.of(context).primaryColor.r * 255).round(), (Theme.of(context).primaryColor.g * 255).round(), (Theme.of(context).primaryColor.b * 255).round(), 0.1),
+              Color.fromRGBO(primary.red, primary.green, primary.blue, 0.1),
               Theme.of(context).scaffoldBackgroundColor,
-              Color.fromRGBO((Theme.of(context).primaryColor.r * 255).round(), (Theme.of(context).primaryColor.g * 255).round(), (Theme.of(context).primaryColor.b * 255).round(), 0.05),
+              Color.fromRGBO(primary.red, primary.green, primary.blue, 0.05),
             ],
           ),
         ),
@@ -106,22 +110,17 @@ class _SplashScreenState extends State<SplashScreen>
               // المساحة العلوية
               const Spacer(flex: 2),
               
-              // الشعار مع الأنيميشن
-              AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: AppLogo(
-                        size: Responsive.wp(context, 34),
-                        showText: true,
-                        text: AppLocalizations.of(context)!.appTitle,
-                      ),
-                    ),
-                  );
-                },
+              // الشعار مع الأنيميشن (استخدم ScaleTransition بدلاً من قراءة .value مباشرة)
+              ScaleTransition(
+                scale: _scaleAnimation,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: AppLogo(
+                    size: Responsive.wp(context, 34),
+                    showText: true,
+                    text: l10n?.appTitle ?? 'Notes',
+                  ),
+                ),
               ),
               SizedBox(height: Layout.sectionSpacing(context)),
               
@@ -132,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
                   return FadeTransition(
                     opacity: _fadeAnimation,
                       child: Text(
-                      AppLocalizations.of(context)!.splashWelcomeTitle,
+                      l10n?.splashWelcomeTitle ?? 'Welcome',
                       style: TextStyle(
                         fontSize: Responsive.sp(context, 3.0),
                         color: Theme.of(context).primaryColor,
@@ -153,15 +152,10 @@ class _SplashScreenState extends State<SplashScreen>
                   return FadeTransition(
                     opacity: _fadeAnimation,
                       child: Text(
-                      AppLocalizations.of(context)!.splashTagline,
+                      l10n?.splashTagline ?? 'Organize your notes quickly and easily.',
                       style: TextStyle(
                         fontSize: Layout.bodyFont(context),
-                        color: Color.fromRGBO(
-                          ((Theme.of(context).textTheme.bodyMedium?.color?.r ?? 0) * 255).round(),
-                          ((Theme.of(context).textTheme.bodyMedium?.color?.g ?? 0) * 255).round(),
-                          ((Theme.of(context).textTheme.bodyMedium?.color?.b ?? 0) * 255).round(),
-                          0.7,
-                        ),
+                        color: Color.fromRGBO(bodyColor.red, bodyColor.green, bodyColor.blue, 0.7),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -180,26 +174,22 @@ class _SplashScreenState extends State<SplashScreen>
                     opacity: _fadeAnimation,
                     child: Padding(
                       padding: EdgeInsets.only(bottom: Responsive.hp(context, 6)),
-                      child: SizedBox(
-                        width: Responsive.wp(context, 6),
-                        height: Responsive.wp(context, 6),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: Responsive.wp(context, 6),
-                              height: Responsive.wp(context, 6),
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color.fromRGBO((Theme.of(context).primaryColor.r * 255).round(), (Theme.of(context).primaryColor.g * 255).round(), (Theme.of(context).primaryColor.b * 255).round(), 0.6),
-                                ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: Responsive.wp(context, 6),
+                            height: Responsive.wp(context, 6),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color.fromRGBO(primary.red, primary.green, primary.blue, 0.6),
                               ),
                             ),
-                            SizedBox(height: Layout.smallGap(context) * 0.6),
-                            Text(AppLocalizations.of(context)!.splashLoading, style: TextStyle(fontSize: Layout.bodyFont(context))),
-                          ],
-                        ),
+                          ),
+                          SizedBox(height: Layout.smallGap(context) * 0.6),
+                          Text(l10n?.splashLoading ?? 'Loading', style: TextStyle(fontSize: Layout.bodyFont(context))),
+                        ],
                       ),
                     ),
                   );

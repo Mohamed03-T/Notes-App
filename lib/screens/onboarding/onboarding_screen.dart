@@ -18,15 +18,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentIndex = 0;
 
   List<Map<String, String>> _localizedPages(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    // Provide simple fallbacks in case localization isn't ready yet
     return [
-      {'title': l10n.onboardingPage1Title, 'description': l10n.onboardingPage1Description},
-      {'title': l10n.onboardingPage2Title, 'description': l10n.onboardingPage2Description},
-      {'title': l10n.onboardingPage3Title, 'description': l10n.onboardingPage3Description},
-      {'title': l10n.onboardingPage4Title, 'description': l10n.onboardingPage4Description},
-      {'title': l10n.onboardingPage5Title, 'description': l10n.onboardingPage5Description},
-      {'title': l10n.onboardingPage6Title, 'description': l10n.onboardingPage6Description},
-      {'title': l10n.onboardingPage7Title, 'description': l10n.onboardingPage7Description},
+      {
+        'title': l10n?.onboardingPage1Title ?? 'Create and organize',
+        'description': l10n?.onboardingPage1Description ?? 'Create notes quickly and keep them organized.'
+      },
+      {
+        'title': l10n?.onboardingPage2Title ?? 'Sync across devices',
+        'description': l10n?.onboardingPage2Description ?? 'Access your notes from anywhere.'
+      },
+      {
+        'title': l10n?.onboardingPage3Title ?? 'Attach files',
+        'description': l10n?.onboardingPage3Description ?? 'Attach images and documents to your notes.'
+      },
+      {
+        'title': l10n?.onboardingPage4Title ?? 'Search easily',
+        'description': l10n?.onboardingPage4Description ?? 'Find notes with quick search.'
+      },
+      {
+        'title': l10n?.onboardingPage5Title ?? 'Share',
+        'description': l10n?.onboardingPage5Description ?? 'Share notes with your friends.'
+      },
+      {
+        'title': l10n?.onboardingPage6Title ?? 'Customize',
+        'description': l10n?.onboardingPage6Description ?? 'Use themes and colors to personalize.'
+      },
+      {
+        'title': l10n?.onboardingPage7Title ?? 'Get started',
+        'description': l10n?.onboardingPage7Description ?? 'Start creating beautiful notes.'
+      },
     ];
   }
 
@@ -41,6 +63,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final pages = _localizedPages(context);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -48,9 +73,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _controller,
-                itemCount: _localizedPages(context).length,
+                itemCount: pages.length,
                 onPageChanged: (i) => setState(() => _currentIndex = i),
                 itemBuilder: (_, index) {
+                  final page = pages[index];
                   return Padding(
                     padding: EdgeInsets.all(Layout.horizontalPadding(context)),
                     child: Column(
@@ -60,17 +86,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         AppLogo(
                           size: Responsive.wp(context, 34),
                           showText: true,
-                          text: AppLocalizations.of(context)!.appTitle,
+                          text: l10n?.appTitle ?? 'Notes',
                         ),
                         SizedBox(height: Layout.sectionSpacing(context) * 1.2),
                         Text(
-                          _localizedPages(context)[index]['title']!,
+                          page['title']!,
                           style: TextStyle(fontSize: Responsive.sp(context, 2.8), fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
                         SizedBox(height: Layout.smallGap(context) * 1.2),
                         Text(
-                          _localizedPages(context)[index]['description']!,
+                          page['description']!,
                           style: TextStyle(fontSize: Layout.bodyFont(context)),
                           textAlign: TextAlign.center,
                         ),
@@ -93,11 +119,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 curve: Curves.ease);
                           }
                         : _finishOnboarding,
-                    child: Text(_currentIndex > 0 ? AppLocalizations.of(context)!.onboardingBack : AppLocalizations.of(context)!.onboardingSkip),
+                    child: Text(_currentIndex > 0 ? (l10n?.onboardingBack ?? 'Back') : (l10n?.onboardingSkip ?? 'Skip')),
                   ),
                   Row(
                     children: List.generate(
-                      _localizedPages(context).length,
+                      pages.length,
                       (index) => Container(
                         margin: EdgeInsets.symmetric(horizontal: Responsive.wp(context, 0.6)),
                         width: _currentIndex == index ? Responsive.wp(context, 3.2) : Responsive.wp(context, 2.4),
@@ -112,14 +138,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: _currentIndex < _localizedPages(context).length - 1
+                    onPressed: _currentIndex < pages.length - 1
                         ? () {
                             _controller.nextPage(
                                 duration: const Duration(milliseconds: 300),
                                 curve: Curves.ease);
                           }
                         : _finishOnboarding,
-                    child: Text(_currentIndex < _localizedPages(context).length - 1 ? AppLocalizations.of(context)!.onboardingNext : AppLocalizations.of(context)!.onboardingFinish),
+                    child: Text(_currentIndex < pages.length - 1 ? (l10n?.onboardingNext ?? 'Next') : (l10n?.onboardingFinish ?? 'Finish')),
                   ),
                 ],
               ),

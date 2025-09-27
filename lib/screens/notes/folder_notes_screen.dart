@@ -123,15 +123,17 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
                           setState(() {});
                         },
                         onDelete: () async {
+                          final messenger = ScaffoldMessenger.of(context);
                           await repo!.deleteNote(widget.pageId, widget.folderId, n.id);
                           setState(() {});
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Text('Note deleted'),
                               action: SnackBarAction(
                                 label: 'Undo',
                                 onPressed: () async {
                                   await repo!.restoreNote(widget.pageId, widget.folderId, n.id);
+                                  if (!mounted) return;
                                   setState(() {});
                                 },
                               ),
@@ -139,6 +141,7 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
                           );
                         },
                         onShare: () async {
+                          final messenger = ScaffoldMessenger.of(context);
                           try {
                             if ((n.attachments ?? []).isNotEmpty) {
                               final xfiles = (n.attachments ?? []).map((p) => XFile(p)).toList();
@@ -147,7 +150,7 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
                               await Share.share(n.content);
                             }
                           } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Share failed')));
+                            messenger.showSnackBar(SnackBar(content: Text('Share failed')));
                           }
                         },
                       ),

@@ -165,7 +165,6 @@ class _AddPageScreenState extends State<AddPageScreen> {
                         style: TextStyle(fontSize: Layout.bodyFont(context)),
                       ),
                     ),
-                    const Spacer(),
                   ],
                 ),
               ),
