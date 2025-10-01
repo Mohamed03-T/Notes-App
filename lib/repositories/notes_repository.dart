@@ -1,6 +1,9 @@
 import '../models/page_model.dart';
 import '../models/folder_model.dart';
 import '../models/note_model.dart';
+import '../core/database/sqlite_notes_store.dart';
+import '../core/database/i_notes_store.dart';
+import '../core/database/migration_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,18 +20,22 @@ class NotesRepository {
     return _instance!;
   }
 
+  // 🔵 SQLite Storage Layer
+  late final INotesStore _store;
+  
   // Keep an in-memory seed for UI, but persist notes to local storage
   final List<PageModel> _pages = [];
   
-  // مفاتيح التخزين مع إصدارات
-  static const String _notesKey = 'saved_notes_v2'; // تحديث الإصدار
+  // مفاتيح التخزين مع إصدارات (للترحيل من SharedPreferences)
+  static const String _notesKey = 'saved_notes_v2';
   static const String _pagesKey = 'saved_pages_v1';
   static const String _versionKey = 'data_version';
   static const String _backupKey = 'backup_notes_v2';
-  static const int _currentDataVersion = 2; // الإصدار الحالي للبيانات
+  static const int _currentDataVersion = 3; // ⬆️ الإصدار الحالي (SQLite)
   
   bool _isInitialized = false;
-  bool _hasNewChanges = false; // متغير لتتبع التغييرات الجديدة
+  bool _hasNewChanges = false;
+  bool _usingSqlite = false; // 🔵 علم للإشارة إلى استخدام SQLite
 
   NotesRepository._internal();
 
@@ -36,21 +43,124 @@ class NotesRepository {
   factory NotesRepository() {
     if (_instance == null) {
       _instance = NotesRepository._internal();
-      _instance!._seed();
-      _instance!._loadSavedNotes();
+      // ملاحظة: هذا factory للاستخدام السريع فقط
+      // يُفضل استخدام NotesRepository.instance للتهيئة الكاملة
+      _instance!._loadPages().then((_) {
+        if (_instance!._pages.isEmpty) {
+          _instance!._seed();
+        }
+        _instance!._loadSavedNotes();
+      });
     }
     return _instance!;
   }
 
   Future<void> _initialize() async {
     if (!_isInitialized) {
-      _seed();
-      await _checkAndMigrateData(); // تحقق من الإصدار والترحيل
-  // Load pages structure first so notes can attach to folders
-  await _loadPages();
-  await _loadSavedNotes();
+      // 🔵 1️⃣ تهيئة SQLite Store
+      _store = SqliteNotesStore();
+      
+      // 🔵 2️⃣ تحقق من حالة الترحيل وتنفيذه إذا لزم الأمر
+      final migrationService = MigrationService();
+      final migrationStatus = await migrationService.checkMigrationStatus();
+      
+      debugPrint('📊 حالة الترحيل: $migrationStatus');
+      
+      if (migrationStatus == MigrationState.pending || migrationStatus == MigrationState.notNeeded) {
+        debugPrint('🚀 بدء الترحيل من SharedPreferences إلى SQLite...');
+        final result = await migrationService.startMigration();
+        
+        if (result.success && result.data != null) {
+          final report = result.data!;
+          debugPrint('✅ نجح الترحيل! Pages: ${report.newPagesCount}, Folders: ${report.newFoldersCount}, Notes: ${report.newNotesCount}');
+          _usingSqlite = true;
+        } else {
+          debugPrint('❌ فشل الترحيل: ${result.error}');
+          debugPrint('⚠️ سيستمر استخدام SharedPreferences');
+          _usingSqlite = false;
+        }
+      } else if (migrationStatus == MigrationState.completed) {
+        debugPrint('✅ SQLite جاهز للاستخدام (الترحيل مكتمل)');
+        _usingSqlite = true;
+      } else {
+        debugPrint('⚠️ حالة غير متوقعة ($migrationStatus)، سيستمر استخدام SharedPreferences');
+        _usingSqlite = false;
+      }
+      
+      // 3️⃣ حمّل البيانات حسب المصدر
+      if (_usingSqlite) {
+        await _loadFromSqlite();
+      } else {
+        await _loadFromSharedPreferences();
+      }
+      
       _isInitialized = true;
+      debugPrint('✅ تم تهيئة NotesRepository: ${_pages.length} صفحة (SQLite: $_usingSqlite)');
     }
+  }
+
+  // 🔵 تحميل البيانات من SQLite
+  Future<void> _loadFromSqlite() async {
+    try {
+      // 1️⃣ حمّل الصفحات
+      final pagesResult = await _store.getAllPages();
+      if (pagesResult.success && pagesResult.data != null) {
+        _pages.clear();
+        _pages.addAll(pagesResult.data!);
+        debugPrint('✅ تم تحميل ${_pages.length} صفحة من SQLite');
+      }
+      
+      // 2️⃣ إذا لم توجد صفحات، أنشئ الافتراضية
+      if (_pages.isEmpty) {
+        _seed();
+        await _savePagesToSqlite();
+      }
+      
+      // 3️⃣ حمّل المجلدات والملاحظات لكل صفحة
+      for (final page in _pages) {
+        final foldersResult = await _store.getFoldersByPageId(page.id);
+        if (foldersResult.success && foldersResult.data != null) {
+          page.folders.clear();
+          page.folders.addAll(foldersResult.data!);
+          
+          // حمّل الملاحظات لكل مجلد
+          for (final folder in page.folders) {
+            final notesResult = await _store.getNotesByFolderId(folder.id);
+            if (notesResult.success && notesResult.data != null) {
+              folder.notes.clear();
+              folder.notes.addAll(notesResult.data!);
+            }
+          }
+        }
+      }
+      
+      debugPrint('✅ تم تحميل جميع البيانات من SQLite');
+    } catch (e) {
+      debugPrint('❌ خطأ في تحميل البيانات من SQLite: $e');
+    }
+  }
+
+  // 🔵 حفظ الصفحات إلى SQLite
+  Future<void> _savePagesToSqlite() async {
+    for (final page in _pages) {
+      await _store.savePage(page);
+      for (final folder in page.folders) {
+        await _store.saveFolder(folder, page.id);
+        for (final note in folder.notes) {
+          await _store.saveNote(note, page.id, folder.id);
+        }
+      }
+    }
+  }
+
+  // 🔵 تحميل البيانات من SharedPreferences (طريقة legacy)
+  Future<void> _loadFromSharedPreferences() async {
+    await _checkAndMigrateData();
+    await _loadPages();
+    if (_pages.isEmpty) {
+      _seed();
+    }
+    await _loadSavedNotes();
   }
 
   bool get hasNewChanges => _hasNewChanges;
@@ -125,6 +235,19 @@ class NotesRepository {
       for (final noteStr in notesJson) {
         try {
           final noteData = jsonDecode(noteStr);
+          
+          // ✅ تحقق من وجود pageId و folderId أولاً
+          final pageId = noteData['pageId'];
+          final folderId = noteData['folderId'];
+          
+          // إذا لم تكن موجودة، تخطي الملاحظة مع تحذير
+          if (pageId == null || folderId == null) {
+            debugPrint('⚠️ تخطي ملاحظة بدون pageId/folderId: ${noteData['content']?.toString().substring(0, 30) ?? 'unknown'}');
+            debugPrint('   - pageId: $pageId, folderId: $folderId');
+            debugPrint('   - سيتم تجاهل هذه الملاحظة حتى يتم إصلاح البيانات');
+            continue;  // تخطي هذه الملاحظة
+          }
+          
           // استخدم createdAt المخزن إن وُجد للحفاظ على الطابع الزمني الحقيقي للملاحظة
           DateTime? createdAt;
           if (noteData['createdAt'] != null) {
@@ -149,10 +272,6 @@ class NotesRepository {
             updatedAt: noteData['updatedAt'] != null ? DateTime.fromMillisecondsSinceEpoch(noteData['updatedAt']) : null,
             attachments: (noteData['attachments'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
           );
-          
-          // Check if note has folder info, otherwise default to first folder
-          final pageId = noteData['pageId'] ?? 'p1';
-          final folderId = noteData['folderId'] ?? 'f1';
           
           debugPrint('📝 تحميل ملاحظة: ${note.content} إلى المجلد: $folderId');
           
@@ -479,46 +598,61 @@ class NotesRepository {
     debugPrint('NotesRepository: generated id = $id');
     
     try {
-      // Save to SharedPreferences with folder info
-      debugPrint('NotesRepository: getting SharedPreferences instance...');
-      final prefs = await SharedPreferences.getInstance();
-      debugPrint('NotesRepository: got SharedPreferences instance');
+      // إنشاء كائن الملاحظة
+      final newNote = NoteModel(id: id, type: NoteType.text, content: content, colorValue: colorValue, attachments: attachments);
       
-      final currentNotes = prefs.getStringList(_notesKey) ?? [];
-      debugPrint('NotesRepository: current notes count = ${currentNotes.length}');
-      
-      final noteData = {
-        'id': id,
-        'content': content,
-        'type': type,
-        'pageId': pageId,
-        'folderId': folderId,
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-        'colorValue': colorValue,
-        'isPinned': false,
-        'isArchived': false,
-        'isDeleted': false,
-        'updatedAt': DateTime.now().millisecondsSinceEpoch,
-        'attachments': attachments ?? [],
-      };
-      debugPrint('NotesRepository: created noteData = $noteData');
-      
-      currentNotes.add(jsonEncode(noteData));
-      debugPrint('NotesRepository: added note to list, new count = ${currentNotes.length}');
-      
-      // حفظ نسخة احتياطية كل 10 ملاحظات
-      if (currentNotes.length % 10 == 0) {
-        await _createBackup(currentNotes);
-      }
+      // 🔵 حفظ إلى SQLite إذا كان مُفعّلاً
+      if (_usingSqlite) {
+        debugPrint('💾 حفظ الملاحظة إلى SQLite...');
+        final result = await _store.saveNote(newNote, pageId, folderId);
+        if (!result.success) {
+          debugPrint('❌ فشل حفظ الملاحظة إلى SQLite: ${result.error}');
+          return false;
+        }
+        debugPrint('✅ تم حفظ الملاحظة في SQLite');
+      } else {
+        // استخدام SharedPreferences (طريقة legacy)
+        debugPrint('NotesRepository: getting SharedPreferences instance...');
+        final prefs = await SharedPreferences.getInstance();
+        debugPrint('NotesRepository: got SharedPreferences instance');
+        
+        final currentNotes = prefs.getStringList(_notesKey) ?? [];
+        debugPrint('NotesRepository: current notes count = ${currentNotes.length}');
+        
+        final noteData = {
+          'id': id,
+          'content': content,
+          'type': type,
+          'pageId': pageId,
+          'folderId': folderId,
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+          'colorValue': colorValue,
+          'isPinned': false,
+          'isArchived': false,
+          'isDeleted': false,
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+          'attachments': attachments ?? [],
+        };
+        debugPrint('NotesRepository: created noteData = $noteData');
+        
+        currentNotes.add(jsonEncode(noteData));
+        debugPrint('NotesRepository: added note to list, new count = ${currentNotes.length}');
+        
+        // حفظ نسخة احتياطية كل 10 ملاحظات
+        if (currentNotes.length % 10 == 0) {
+          await _createBackup(currentNotes);
+        }
 
-      // استخدام الحفظ الآمن مع إعادة المحاولة
-      final saveSuccess = await _safeSetStringList(_notesKey, currentNotes);
-      if (!saveSuccess) {
-        throw Exception('فشل في حفظ البيانات بشكل آمن');
+        // استخدام الحفظ الآمن مع إعادة المحاولة
+        final saveSuccess = await _safeSetStringList(_notesKey, currentNotes);
+        if (!saveSuccess) {
+          throw Exception('فشل في حفظ البيانات بشكل آمن');
+        }
+        
+        debugPrint('NotesRepository: saved to SharedPreferences successfully');
       }
       
-      debugPrint('NotesRepository: saved to SharedPreferences successfully');      // Also add to in-memory for immediate UI update
-  final newNote = NoteModel(id: id, type: NoteType.text, content: content, colorValue: colorValue, attachments: attachments);
+      // إضافة إلى الذاكرة للتحديث الفوري للواجهة
       final folder = getFolder(pageId, folderId);
       if (folder != null) {
         folder.notes.add(newNote);
