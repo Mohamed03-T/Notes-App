@@ -255,11 +255,14 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
                     ),
                   ),
                   
-                  // Preview content area  
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(Responsive.wp(context, 1)),
-                    child: hasNotes ? _buildNotesPreview() : _buildEmptyState(),
+                  // Preview content area - آخر 3 ملاحظات فقط
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(Responsive.wp(context, 1)),
+                      child: hasNotes ? _buildNotesPreview() : _buildEmptyState(),
+                    ),
                   ),
                   
                   // Footer with timestamp
@@ -309,51 +312,63 @@ class _FolderCardState extends State<FolderCard> with SingleTickerProviderStateM
   }
 
   Widget _buildNotesPreview() {
-    final notesToShow = widget.folder.notes.take(3).toList();
+    // ✅ عرض آخر 3 ملاحظات فقط لتجنب overflow
+    final allNotes = widget.folder.notes;
+    final notesToShow = allNotes.length > 3 
+        ? allNotes.skip(allNotes.length - 3).toList() // آخر 3 ملاحظات
+        : allNotes.toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: notesToShow.map((note) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.05),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.1),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 1),
-                width: 3,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.6),
-                  shape: BoxShape.circle,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: Responsive.hp(context, 12), // تحديد ارتفاع أقصى
+      ),
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(), // منع التمرير
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: notesToShow.map((note) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.05),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.1),
+                  width: 1,
                 ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  note.content.split(' ').take(3).join(' ') + (note.content.split(' ').length > 3 ? '...' : ''),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.getTextPrimary(context),
-                    fontSize: 11,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 1),
+                    width: 3,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: Color.fromRGBO((Theme.of(context).colorScheme.primary.r * 255).round(), (Theme.of(context).colorScheme.primary.g * 255).round(), (Theme.of(context).colorScheme.primary.b * 255).round(), 0.6),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      note.content.split(' ').take(3).join(' ') + (note.content.split(' ').length > 3 ? '...' : ''),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.getTextPrimary(context),
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
