@@ -30,31 +30,18 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
   
   Future<void> _initializeRepository() async {
     repo = await NotesRepository.instance;
-    // طباعة حالة المجلد عند الفتح
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final folder = repo?.getFolder(widget.pageId, widget.folderId);
-      debugPrint('🔍 فتح مجلد: ${folder?.title} - عدد الملاحظات: ${folder?.notes.length}');
-    });
     setState(() {});
   }
 
   Future<void> _saveNote(String text, int? colorValue, List<String>? attachments) async {
     if (repo == null) return;
     
-    // حفظ الملاحظة في المجلد المحدد
-    debugPrint('💾 حفظ ملاحظة في المجلد: ${widget.folderId}');
-    debugPrint('📝 النص: $text');
-
-  final success = await repo!.saveNoteToFolder(text, widget.pageId, widget.folderId, colorValue: colorValue, attachments: attachments);
+    final success = await repo!.saveNoteToFolder(text, widget.pageId, widget.folderId, colorValue: colorValue, attachments: attachments);
     
     if (success) {
       setState(() {
         // تحديث الواجهة
       });
-      
-      debugPrint('✅ تم حفظ الملاحظة بنجاح');
-    } else {
-      debugPrint('❌ فشل في حفظ الملاحظة');
     }
   }
 

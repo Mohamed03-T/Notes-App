@@ -59,7 +59,6 @@ class _NotesHomeState extends State<NotesHome> {
   }
 
   void _selectPage(int index) {
-  if (kDebugMode) debugPrint('🔄 تم اختيار الصفحة بالفهرس: $index');
     if (repo == null) return;
     setState(() {
       currentPageIndex = index;
@@ -67,7 +66,6 @@ class _NotesHomeState extends State<NotesHome> {
       final pages = repo!.getPages();
       if (pages.isNotEmpty && index < pages.length) {
         folderList = List<FolderModel>.from(pages[index].folders);
-        if (kDebugMode) debugPrint('🔄 تم تحديث قائمة المجلدات للصفحة: ${pages[index].title}');
       }
     });
   }
@@ -439,9 +437,6 @@ class _NotesHomeState extends State<NotesHome> {
       );
     }
 
-  if (kDebugMode) debugPrint('🔍 الصفحة الحالية: ${current.title} (فهرس: $currentPageIndex)');
-  if (kDebugMode) debugPrint('🔍 استخدام الترتيب المصنف؟ $useSorted');
-
     // Initialize or reset folderList when page changes
     if (folderList.length != current.folders.length) {
       folderList = List<FolderModel>.from(current.folders)
@@ -465,7 +460,7 @@ class _NotesHomeState extends State<NotesHome> {
           // لأن ذلك يغيّر طريقة العرض من المصنّف إلى الأصلي فوراً ويُحدث إعادة ترتيب
           _selectPage(origIndex);
         }, // التنقل العادي بدون تغيير ترتيب
-        onMorePressed: _openAllPagesScreen,
+        onAllPagesPressed: _openAllPagesScreen, // دمج زر جميع الصفحات مع القائمة
         onAddPagePressed: _addNewPage, // إضافة دالة إضافة الصفحة
         onSettingsPressed: _openSettings, // إضافة دالة الإعدادات
       ),

@@ -49,15 +49,7 @@ class AppLogo extends StatelessWidget {
       width: size,
       height: size,
       fit: BoxFit.contain, // تحسين ليحافظ على النسب
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (frame != null) {
-          if (kDebugMode) debugPrint('✅ تم تحميل الشعار بنجاح من ${AppAssets.logoPng}');
-        }
-        return child;
-      },
       errorBuilder: (context, error, stackTrace) {
-  if (kDebugMode) debugPrint('🖼️ فشل في تحميل الشعار من ${AppAssets.logoPng}: $error');
-  if (kDebugMode) debugPrint('📋 استخدام الشعار الافتراضي البسيط كبديل');
         
         // شعار افتراضي بسيط ونظيف
         return Container(

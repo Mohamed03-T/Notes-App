@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/tokens.dart';
-import '../../widgets/app_logo.dart';
 import '../../core/layout/layout_helpers.dart';
 import '../../utils/responsive.dart';
 import '../../generated/l10n/app_localizations.dart';
@@ -21,7 +20,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final int currentPageIndex;
   final Function(int)? onPageSelected;
   final List<int>? originalIndices; // mapping from displayed pages to original indices
-  final VoidCallback? onMorePressed;
+  final VoidCallback? onAllPagesPressed; // زر عرض جميع الصفحات
   final VoidCallback? onAddPagePressed; // زر إضافة صفحة جديدة
   final VoidCallback? onSettingsPressed; // زر الإعدادات
   final int? totalPagesCount; // العدد الكلي للصفحات
@@ -32,7 +31,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.currentPageIndex = 0,
     this.onPageSelected,
     this.originalIndices,
-    this.onMorePressed,
+    this.onAllPagesPressed,
     this.onAddPagePressed,
     this.onSettingsPressed,
     this.totalPagesCount,
@@ -73,19 +72,19 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     
     return AppBar(
       toolbarHeight: AppTokens.topBarHeight,
-  backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       elevation: 0,
       shadowColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
+        preferredSize: const Size.fromHeight(0.5),
         child: Container(
-          height: 1,
+          height: 0.5,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
                 Colors.transparent,
-                Theme.of(context).dividerColor,
+                Theme.of(context).dividerColor.withOpacity(0.2),
                 Colors.transparent,
               ],
               stops: const [0.0, 0.5, 1.0],
@@ -95,13 +94,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.2),
+        padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.5),
         child: Row(
           children: [
-            // الشعار الصغير
-            AppLogoSmall(size: Responsive.wp(context, 6)),
-            SizedBox(width: Layout.smallGap(context)),
-            
             // الصفحات المرئية - تتوسع لملء المساحة المتاحة
             Expanded(
               child: SingleChildScrollView(
@@ -122,15 +117,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             
             // زر القائمة المنسدلة
-            if (onAddPagePressed != null || onSettingsPressed != null) ...[
+            if (onAddPagePressed != null || onSettingsPressed != null || onAllPagesPressed != null) ...[
               SizedBox(width: buttonSpacing),
-              _buildMenuButton(context),
-            ],
-            
-            // زر "المزيد" إذا كان هناك صفحات إضافية
-            if (hiddenCount > 0) ...[
-              SizedBox(width: buttonSpacing),
-              _buildMoreButton(hiddenCount),
+              _buildMenuButton(context, hiddenCount),
             ],
           ],
         ),
@@ -222,80 +211,61 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 : pageIndex;
             onPageSelected?.call(mappedOriginal);
           },
-          borderRadius: BorderRadius.circular(20),
-          splashColor: const Color.fromRGBO(59, 130, 246, 0.1),
-          highlightColor: const Color.fromRGBO(59, 130, 246, 0.05),
-            child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            padding: EdgeInsets.symmetric(horizontal: Responsive.wp(context, 4), vertical: Responsive.hp(context, 1.2)),
+          borderRadius: BorderRadius.circular(16),
+          splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
+          highlightColor: Theme.of(context).primaryColor.withOpacity(0.05),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: Responsive.wp(context, 3.5), 
+              vertical: Responsive.hp(context, 1.1)
+            ),
             decoration: BoxDecoration(
-              gradient: isSelected
-                  ? LinearGradient(
-                      colors: [
-                        Colors.blue.shade400,
-                        Colors.blue.shade600,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : LinearGradient(
-                      colors: [
-                        Colors.grey.shade50,
-                        Colors.grey.shade100,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              borderRadius: BorderRadius.circular(20),
-              border: isSelected 
-                  ? null 
-                  : Border.all(
-                      color: Colors.grey.shade200,
-                      width: 1,
-                    ),
+              color: isSelected
+                  ? Theme.of(context).primaryColor
+                  : Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected 
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).dividerColor.withOpacity(0.3),
+                width: isSelected ? 0 : 1.5,
+              ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: Color.fromRGBO(147, 197, 253, 0.5),
-                        blurRadius: 12,
+                        color: Theme.of(context).primaryColor.withOpacity(0.3),
+                        blurRadius: 10,
                         offset: const Offset(0, 4),
-                        spreadRadius: 0,
-                      ),
-                      BoxShadow(
-                        color: Color.fromRGBO(191, 219, 254, 0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                        spreadRadius: 0,
+                        spreadRadius: -2,
                       ),
                     ]
-                  : [
-                      BoxShadow(
-                        color: Color.fromRGBO(229, 231, 235, 0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                        spreadRadius: 0,
-                      ),
-                    ],
+                  : [],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (isSelected) ...[
-                  Icon(
-                    Icons.radio_button_checked,
-                    size: Responsive.sp(context, 1.4),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOutCubic,
+                  width: isSelected ? 6 : 0,
+                  height: isSelected ? 6 : 0,
+                  margin: EdgeInsets.only(right: isSelected ? 8 : 0),
+                  decoration: BoxDecoration(
                     color: Colors.white,
+                    shape: BoxShape.circle,
                   ),
-                  SizedBox(width: Layout.smallGap(context)),
-                ],
+                ),
                 Text(
                   pageTitle,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey.shade700,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    fontSize: Responsive.sp(context, 1.6),
-                    letterSpacing: 0.2,
+                    color: isSelected 
+                        ? Colors.white 
+                        : Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.8),
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: Responsive.sp(context, 1.55),
+                    letterSpacing: 0.3,
                   ),
                 ),
               ],
@@ -306,10 +276,17 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildMenuButton(BuildContext context) {
+  Widget _buildMenuButton(BuildContext context, int hiddenCount) {
     return PopupMenuButton<String>(
+      offset: const Offset(0, 50),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 8,
+      color: Theme.of(context).cardColor,
       onSelected: (String value) {
         switch (value) {
+          case 'all_pages':
+            onAllPagesPressed?.call();
+            break;
           case 'add_page':
             onAddPagePressed?.call();
             break;
@@ -319,132 +296,198 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
           case 'language':
             // TODO: تنفيذ اختيار اللغة
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(AppLocalizations.of(context)!.helpComingSoon)),
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.helpComingSoon),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             );
             break;
           case 'notifications':
             // TODO: تنفيذ إعدادات الإشعارات
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(AppLocalizations.of(context)!.notificationSoundsComingSoon)),
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.notificationSoundsComingSoon),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             );
             break;
         }
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        if (onAllPagesPressed != null && hiddenCount > 0)
+          PopupMenuItem<String>(
+            value: 'all_pages',
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(Icons.apps_rounded, color: Theme.of(context).primaryColor, size: 20),
+                      if (hiddenCount > 0)
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '$hiddenCount',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 8,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  AppLocalizations.of(context)!.allPagesTitle,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (onAddPagePressed != null)
           PopupMenuItem<String>(
             value: 'add_page',
-            child: ListTile(
-              leading: Icon(Icons.add, color: Colors.green),
-              title: Text(AppLocalizations.of(context)!.addNewPage),
-              contentPadding: EdgeInsets.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.add_rounded, color: Colors.green, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  AppLocalizations.of(context)!.addNewPage,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         if (onSettingsPressed != null)
           PopupMenuItem<String>(
             value: 'settings',
-            child: ListTile(
-              leading: Icon(Icons.settings, color: Colors.grey),
-              title: Text(AppLocalizations.of(context)!.settings),
-              contentPadding: EdgeInsets.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.settings_rounded, color: Colors.grey, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  AppLocalizations.of(context)!.settings,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         PopupMenuItem<String>(
           value: 'language',
-          child: ListTile(
-            leading: Icon(Icons.language, color: Colors.blue),
-            title: Text(AppLocalizations.of(context)!.selectLanguage),
-            contentPadding: EdgeInsets.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.language_rounded, color: Colors.blue, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                AppLocalizations.of(context)!.selectLanguage,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
         PopupMenuItem<String>(
           value: 'notifications',
-          child: ListTile(
-            leading: Icon(Icons.notifications, color: Colors.orange),
-            title: Text(AppLocalizations.of(context)!.notifications),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      ],
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            width: Responsive.wp(context, 9),
-            height: Responsive.wp(context, 9),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.grey.shade400,
-                  Colors.grey.shade500,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Color.fromRGBO(209, 213, 219, 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                  spreadRadius: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ],
-            ),
-            child: Icon(
-              Icons.more_vert,
-              size: Layout.iconSize(context),
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMoreButton(int hiddenCount) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onMorePressed,
-  borderRadius: BorderRadius.circular(20),
-  splashColor: const Color.fromRGBO(249, 115, 22, 0.1),
-  highlightColor: const Color.fromRGBO(249, 115, 22, 0.05),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.orange.shade400,
-                Colors.orange.shade500,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Color.fromRGBO(255, 209, 148, 0.4),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-                spreadRadius: 0,
+                child: Icon(Icons.notifications_rounded, color: Colors.orange, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                AppLocalizations.of(context)!.notifications,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              '$hiddenCount',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                letterSpacing: 0.2,
-              ),
-            ),
+        ),
+      ],
+      child: Container(
+        width: Responsive.wp(context, 9),
+        height: Responsive.wp(context, 9),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(0.3),
+            width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.more_vert_rounded,
+          size: Layout.iconSize(context) * 0.9,
+          color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.7),
         ),
       ),
     );
