@@ -20,16 +20,43 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    String titleText;
+    // تحديد ما إذا كان هناك عنوان منفصل أم لا
+    String? titleText;
+    String contentText;
+    
     switch (note.type) {
       case NoteType.text:
-        titleText = note.content.split('\n').firstWhere((_) => true, orElse: () => note.content);
+        final lines = note.content.split('\n').where((l) => l.trim().isNotEmpty).toList();
+        
+        if (lines.isEmpty) {
+          // لا يوجد محتوى
+          titleText = null;
+          contentText = '';
+        } else if (lines.length == 1) {
+          // سطر واحد فقط - لا نعرض عنوان منفصل
+          titleText = null;
+          contentText = lines.first;
+        } else {
+          // عدة أسطر - نتحقق إذا كان السطر الأول قصير (عنوان محتمل)
+          final firstLine = lines.first.trim();
+          if (firstLine.length <= 50 && !firstLine.endsWith('.') && !firstLine.endsWith('،')) {
+            // السطر الأول قصير ولا ينتهي بنقطة → نعتبره عنوان
+            titleText = firstLine;
+            contentText = lines.skip(1).join('\n');
+          } else {
+            // السطر الأول طويل أو ينتهي بنقطة → لا نعرض عنوان منفصل
+            titleText = null;
+            contentText = note.content;
+          }
+        }
         break;
       case NoteType.image:
         titleText = '[${l10n.noteTypeImage}]';
+        contentText = '';
         break;
       case NoteType.audio:
         titleText = '[${l10n.noteTypeAudio}]';
+        contentText = '';
         break;
     }
 
@@ -66,18 +93,30 @@ class NoteCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // عرض العنوان فقط إذا كان موجوداً
+                          if (titleText != null) ...[
+                            Text(
+                              titleText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: Responsive.sp(context, 2.1),
+                                fontWeight: FontWeight.w700,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                          // عرض المحتوى
                           Text(
-                            titleText,
-                            maxLines: 1,
+                            titleText != null ? _getSnippet(contentText) : _getSnippet(note.content),
+                            maxLines: titleText != null ? 3 : 4,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: Responsive.sp(context, 2.1), fontWeight: FontWeight.w700, color: textColor),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _getSnippet(note.content),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: Responsive.sp(context, 1.8), color: textColor.withOpacity(0.92)),
+                            style: TextStyle(
+                              fontSize: Responsive.sp(context, titleText != null ? 1.8 : 2.0),
+                              fontWeight: titleText != null ? FontWeight.normal : FontWeight.w500,
+                              color: textColor.withOpacity(titleText != null ? 0.92 : 1.0),
+                            ),
                           ),
                         ],
                       ),
