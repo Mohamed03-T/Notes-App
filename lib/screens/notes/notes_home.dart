@@ -27,11 +27,31 @@ class _NotesHomeState extends State<NotesHome> {
   int currentPageIndex = 0;
   List<FolderModel> folderList = [];  // Track folders for reorder
   FolderModel? _draggingFolder;
+  
+  // Cache للحسابات المتكررة
+  late int _gridCols;
+  late double _gridAspect;
+  bool _gridConfigInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _initializeRepository();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_gridConfigInitialized) {
+      _updateGridConfig();
+      _gridConfigInitialized = true;
+    }
+  }
+
+  void _updateGridConfig() {
+    final width = MediaQuery.of(context).size.width;
+    _gridCols = width > 1000 ? 4 : (width > 600 ? 3 : 2);
+    _gridAspect = width > 1000 ? 0.95 : (width > 600 ? 0.9 : 0.85);
   }
 
   Future<void> _initializeRepository() async {
@@ -321,7 +341,7 @@ class _NotesHomeState extends State<NotesHome> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
+              const CircularProgressIndicator(),
               SizedBox(height: Layout.sectionSpacing(context) / 2),
               Text(
                 l10n.loadingData,
@@ -481,8 +501,8 @@ class _NotesHomeState extends State<NotesHome> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AppLogo(
-                    size: Responsive.wp(context, 36),
+                  const AppLogo(
+                    size: 140,
                     showText: false,
                   ),
                   SizedBox(height: Layout.sectionSpacing(context)),
@@ -507,14 +527,24 @@ class _NotesHomeState extends State<NotesHome> {
             )
           : LayoutBuilder(
             builder: (context, constraints) {
-              final cols = constraints.maxWidth > 1000 ? 4 : (constraints.maxWidth > 600 ? 3 : 2);
-              final aspect = constraints.maxWidth > 1000 ? 0.95 : (constraints.maxWidth > 600 ? 0.9 : 0.85);
-              return GridView.count(
-                crossAxisCount: cols,
+              // تحديث Grid config إذا تغير حجم الشاشة
+              final newCols = constraints.maxWidth > 1000 ? 4 : (constraints.maxWidth > 600 ? 3 : 2);
+              if (newCols != _gridCols) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _updateGridConfig();
+                });
+              }
+              
+              return GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: _gridCols,
+                  childAspectRatio: _gridAspect,
+                ),
                 padding: EdgeInsets.all(Layout.horizontalPadding(context)),
-                childAspectRatio: aspect,
-                children: folderList.map((f) {
-              final targetIndex = folderList.indexOf(f);
+                itemCount: folderList.length,
+                itemBuilder: (context, index) {
+                  final f = folderList[index];
+                  final targetIndex = index;
               return DragTarget<FolderModel>(
                 onWillAcceptWithDetails: (details) => details.data != f,
                 onAcceptWithDetails: (details) async {
@@ -544,8 +574,7 @@ class _NotesHomeState extends State<NotesHome> {
                   
                   Widget dragWidget = LongPressDraggable<FolderModel>(
                     data: f,
-                    delay: const Duration(milliseconds: 600), // تقليل المدة إلى 0.6 ثانية
-                    // إزالة dragAnchorStrategy لاستخدام القيمة الافتراضية
+                    delay: const Duration(milliseconds: 600),
                     onDragStarted: () => setState(() => _draggingFolder = f),
                     onDragEnd: (_) => setState(() => _draggingFolder = null),
                           feedback: Material(
@@ -685,7 +714,7 @@ class _NotesHomeState extends State<NotesHome> {
                   return dragWidget;
                 },
               );
-            }).toList(),
+                },
               );
             },
           ),
