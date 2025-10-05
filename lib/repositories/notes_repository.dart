@@ -592,7 +592,7 @@ class NotesRepository {
     }
   }
 
-  Future<bool> saveNoteToFolder(String content, String pageId, String folderId, {String? noteId, String type = 'simple', int? colorValue, List<String>? attachments}) async {
+  Future<String?> saveNoteToFolder(String content, String pageId, String folderId, {String? noteId, String type = 'simple', int? colorValue, List<String>? attachments}) async {
     debugPrint('NotesRepository: saveNoteToFolder called with content="$content", pageId="$pageId", folderId="$folderId", noteId="$noteId"');
     final id = noteId ?? Uuid().v4(); // استخدام noteId الموجود أو إنشاء جديد
     debugPrint('NotesRepository: using id = $id');
@@ -607,9 +607,22 @@ class NotesRepository {
         final result = await _store.saveNote(newNote, pageId, folderId);
         if (!result.success) {
           debugPrint('❌ فشل حفظ الملاحظة إلى SQLite: ${result.error}');
-          return false;
+          return null;
         }
         debugPrint('✅ تم حفظ الملاحظة في SQLite');
+        
+        // إعادة قراءة الملاحظات من SQLite لتحديث الذاكرة
+        final notesResult = await _store.getNotesByFolderId(folderId);
+        if (notesResult.success && notesResult.data != null) {
+          final folder = getFolder(pageId, folderId);
+          if (folder != null) {
+            folder.notes.clear();
+            folder.notes.addAll(notesResult.data!);
+            debugPrint('🔄 تم تحديث الذاكرة من SQLite - عدد الملاحظات: ${folder.notes.length}');
+          }
+        }
+        
+        return id; // إرجاع معرّف الملاحظة
       } else {
         // استخدام SharedPreferences (طريقة legacy)
         debugPrint('NotesRepository: getting SharedPreferences instance...');
@@ -675,40 +688,40 @@ class NotesRepository {
         }
         
         debugPrint('NotesRepository: saved to SharedPreferences successfully');
-      }
-      
-      // تحديث الذاكرة للتحديث الفوري للواجهة
-      final folder = getFolder(pageId, folderId);
-      if (folder != null) {
-        // البحث عن الملاحظة الموجودة في الذاكرة
-        final existingNoteIndex = folder.notes.indexWhere((note) => note.id == id);
-        if (existingNoteIndex != -1) {
-          // تحديث الملاحظة الموجودة
-          folder.notes[existingNoteIndex] = newNote;
-          debugPrint('NotesRepository: updated existing note in memory at index $existingNoteIndex');
+        
+        // تحديث الذاكرة للتحديث الفوري للواجهة (SharedPreferences فقط)
+        final folder = getFolder(pageId, folderId);
+        if (folder != null) {
+          // البحث عن الملاحظة الموجودة في الذاكرة
+          final existingNoteIndex = folder.notes.indexWhere((note) => note.id == id);
+          if (existingNoteIndex != -1) {
+            // تحديث الملاحظة الموجودة
+            folder.notes[existingNoteIndex] = newNote;
+            debugPrint('NotesRepository: updated existing note in memory at index $existingNoteIndex');
+          } else {
+            // إضافة ملاحظة جديدة
+            folder.notes.add(newNote);
+            debugPrint('NotesRepository: added new note to in-memory folder');
+          }
+          
+          // تحديث وقت المجلد
+          _updateFolderTimestamp(pageId, folderId);
+          // وضع علامة على وجود تغييرات جديدة
+          _hasNewChanges = true;
+          debugPrint('NotesRepository: folder notes count = ${folder.notes.length}');
+          
+          // طباعة حالة جميع المجلدات للتشخيص
+          _printAllFoldersStatus();
         } else {
-          // إضافة ملاحظة جديدة
-          folder.notes.add(newNote);
-          debugPrint('NotesRepository: added new note to in-memory folder');
+          debugPrint('NotesRepository: WARNING - folder not found');
         }
-        
-        // تحديث وقت المجلد
-        _updateFolderTimestamp(pageId, folderId);
-        // وضع علامة على وجود تغييرات جديدة
-        _hasNewChanges = true;
-        debugPrint('NotesRepository: folder notes count = ${folder.notes.length}');
-        
-        // طباعة حالة جميع المجلدات للتشخيص
-        _printAllFoldersStatus();
-      } else {
-        debugPrint('NotesRepository: WARNING - folder not found');
       }
       
-      debugPrint('NotesRepository: saveNoteToFolder returning true');
-      return true;
+      debugPrint('NotesRepository: saveNoteToFolder returning id: $id');
+      return id; // إرجاع معرّف الملاحظة
     } catch (e) {
       debugPrint('NotesRepository: Failed to save note: $e');
-      return false;
+      return null;
     }
   }
 

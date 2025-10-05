@@ -20,18 +20,42 @@ class FolderNotesScreen extends StatefulWidget {
   State<FolderNotesScreen> createState() => _FolderNotesScreenState();
 }
 
-class _FolderNotesScreenState extends State<FolderNotesScreen> {
+class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindingObserver {
   NotesRepository? repo;
   
   @override
   void initState() {
     super.initState();
     _initializeRepository();
+    WidgetsBinding.instance.addObserver(this);
+  }
+  
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🔄 التطبيق عاد للواجهة، تحديث البيانات...');
+      setState(() {});
+    }
   }
   
   Future<void> _initializeRepository() async {
     repo = await NotesRepository.instance;
     setState(() {});
+  }
+  
+  Future<void> _refreshData() async {
+    debugPrint('🔄 تحديث البيانات...');
+    if (repo != null) {
+      final folder = repo!.getFolder(widget.pageId, widget.folderId);
+      debugPrint('📊 عدد الملاحظات: ${folder?.notes.length}');
+      setState(() {});
+    }
   }
 
   @override
@@ -52,6 +76,8 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
         body: Center(child: Text(l10n.folderNotFound)),
       );
     }
+    
+    debugPrint('📋 FolderNotesScreen: عرض ${folder.notes.length} ملاحظة');
     
     final reserved = kToolbarHeight + MediaQuery.of(context).padding.top;
     final avail = Layout.availableHeight(context, reservedHeight: reserved);
@@ -160,12 +186,9 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
                     },
                   ),
                 );
-                debugPrint('🟡 نتيجة الإغلاق: $result');
-                if (result == true && mounted) {
-                  // تحديث الواجهة لعرض الملاحظات المحفوظة
-                  debugPrint('🔄 تحديث الواجهة...');
-                  setState(() {});
-                }
+                debugPrint('🟡 نتيجة الإغلاق: $result (type: ${result.runtimeType})');
+                // تحديث الواجهة دائماً عند الرجوع من صفحة الكتابة
+                await _refreshData();
               } catch (e) {
                 debugPrint('🔴 خطأ: $e');
                 if (mounted) {

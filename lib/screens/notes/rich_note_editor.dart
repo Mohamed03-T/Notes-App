@@ -111,24 +111,26 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
       // دمج العنوان مع المحتوى
       final fullContent = title.isEmpty ? content : '$title\n$content';
 
-      bool success;
+      String? savedId;
+      bool success = false;
+      
       if (widget.pageId != null && widget.folderId != null) {
-        success = await repo.saveNoteToFolder(
+        debugPrint('💾 RichNoteEditor: حفظ الملاحظة - noteId الحالي: $_savedNoteId');
+        savedId = await repo.saveNoteToFolder(
           fullContent,
           widget.pageId!,
           widget.folderId!,
           noteId: _savedNoteId, // استخدام معرّف الملاحظة المحفوظة
           colorValue: _backgroundColor,
         );
+        success = savedId != null;
         
-        // حفظ معرّف الملاحظة للمرة القادمة إذا لم يكن موجوداً
-        if (_savedNoteId == null && success) {
-          // قراءة آخر ملاحظة للحصول على معرّفها
-          final folder = repo.getFolder(widget.pageId!, widget.folderId!);
-          if (folder != null && folder.notes.isNotEmpty) {
-            _savedNoteId = folder.notes.last.id;
-            debugPrint('RichNoteEditor: saved noteId = $_savedNoteId');
-          }
+        // حفظ معرّف الملاحظة للمرة القادمة
+        if (savedId != null) {
+          _savedNoteId = savedId;
+          debugPrint('✅ RichNoteEditor: تم الحفظ بنجاح - noteId = $_savedNoteId');
+        } else {
+          debugPrint('❌ RichNoteEditor: فشل الحفظ');
         }
       } else {
         success = await repo.saveNoteSimple(
@@ -194,16 +196,20 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
 
     return WillPopScope(
       onWillPop: () async {
+        debugPrint('🚪 RichNoteEditor: onWillPop called');
         // إلغاء مؤقت الحفظ التلقائي
         _autoSaveTimer?.cancel();
         
         // حفظ تلقائي عند الخروج إذا كان هناك محتوى
         if (_hasContent) {
+          debugPrint('💾 RichNoteEditor: حفظ قبل الخروج...');
           await _saveNote(showMessage: false);
+          debugPrint('✅ RichNoteEditor: تم الحفظ، إغلاق الصفحة مع result=true');
           // إرجاع true للإشارة إلى أنه تم حفظ البيانات
           Navigator.pop(context, true);
           return false; // منع الإغلاق التلقائي لأننا أغلقنا يدوياً
         }
+        debugPrint('⚠️ RichNoteEditor: لا يوجد محتوى، إغلاق عادي');
         return true;
       },
       child: Scaffold(
@@ -213,7 +219,14 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black87),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              debugPrint('🔙 زر الرجوع في AppBar تم الضغط عليه');
+              _autoSaveTimer?.cancel();
+              if (_hasContent) {
+                await _saveNote(showMessage: false);
+              }
+              Navigator.pop(context, true);
+            },
           ),
           title: Text(
             widget.initialTitle != null ? 'تعديل الملاحظة' : 'ملاحظة جديدة',
