@@ -42,6 +42,9 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
   bool _isSaving = false;
   Timer? _autoSaveTimer;
   bool _showFormatToolbar = false; // إظهار/إخفاء شريط التنسيق
+  bool _showColorToolbar = false; // إظهار/إخفاء شريط الألوان
+  bool _hasBeenSaved = false; // تتبع ما إذا تم الحفظ
+  String? _savedNoteId; // معرّف الملاحظة المحفوظة
 
   @override
   void initState() {
@@ -50,8 +53,20 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
     _contentController = TextEditingController(text: widget.initialContent ?? '');
     _backgroundColor = widget.initialColor;
     
-    // الحفظ التلقائي كل 30 ثانية
-    _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    // إعادة تعيين حالة الحفظ عند الكتابة
+    _titleController.addListener(() {
+      if (_hasBeenSaved) {
+        setState(() => _hasBeenSaved = false);
+      }
+    });
+    _contentController.addListener(() {
+      if (_hasBeenSaved) {
+        setState(() => _hasBeenSaved = false);
+      }
+    });
+    
+    // الحفظ التلقائي كل 5 ثواني
+    _autoSaveTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (_hasContent) _autoSave();
     });
   }
@@ -71,6 +86,9 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
   Future<void> _autoSave() async {
     if (!_hasContent) return;
     await _saveNote(showMessage: false);
+    setState(() {
+      _hasBeenSaved = true;
+    });
   }
 
   Future<void> _saveNote({bool showMessage = true}) async {
@@ -99,8 +117,19 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
           fullContent,
           widget.pageId!,
           widget.folderId!,
+          noteId: _savedNoteId, // استخدام معرّف الملاحظة المحفوظة
           colorValue: _backgroundColor,
         );
+        
+        // حفظ معرّف الملاحظة للمرة القادمة إذا لم يكن موجوداً
+        if (_savedNoteId == null && success) {
+          // قراءة آخر ملاحظة للحصول على معرّفها
+          final folder = repo.getFolder(widget.pageId!, widget.folderId!);
+          if (folder != null && folder.notes.isNotEmpty) {
+            _savedNoteId = folder.notes.last.id;
+            debugPrint('RichNoteEditor: saved noteId = $_savedNoteId');
+          }
+        }
       } else {
         success = await repo.saveNoteSimple(
           fullContent,
@@ -108,7 +137,10 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
         );
       }
 
-      setState(() => _isSaving = false);
+      setState(() {
+        _isSaving = false;
+        _hasBeenSaved = true;
+      });
 
       if (success) {
         if (showMessage) {
@@ -162,28 +194,15 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
 
     return WillPopScope(
       onWillPop: () async {
+        // إلغاء مؤقت الحفظ التلقائي
+        _autoSaveTimer?.cancel();
+        
+        // حفظ تلقائي عند الخروج إذا كان هناك محتوى
         if (_hasContent) {
-          final shouldSave = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text('حفظ التغييرات؟'),
-              content: Text('هل تريد حفظ الملاحظة قبل الخروج؟'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text('خروج بدون حفظ'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text('حفظ'),
-                ),
-              ],
-            ),
-          );
-          
-          if (shouldSave == true) {
-            await _saveNote(showMessage: false);
-          }
+          await _saveNote(showMessage: false);
+          // إرجاع true للإشارة إلى أنه تم حفظ البيانات
+          Navigator.pop(context, true);
+          return false; // منع الإغلاق التلقائي لأننا أغلقنا يدوياً
         }
         return true;
       },
@@ -201,44 +220,59 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
           ),
           actions: [
+            // مؤشر الحفظ التلقائي
             if (_isSaving)
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'جاري الحفظ...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
                 ),
               )
-            else
-              IconButton(
-                icon: Icon(Icons.save, color: Colors.blue),
-                onPressed: _saveNote,
-                tooltip: 'حفظ',
+            else if (_hasContent && _hasBeenSaved)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_done,
+                      size: 16,
+                      color: Colors.green,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'محفوظ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert, color: isDark ? Colors.white : Colors.black87),
               onSelected: (value) {
                 switch (value) {
-                  case 'color':
-                    _showColorPicker();
-                    break;
                   case 'clear':
                     _clearAll();
                     break;
                 }
               },
               itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'color',
-                  child: Row(
-                    children: [
-                      Icon(Icons.palette, size: 20),
-                      SizedBox(width: 12),
-                      Text('تغيير اللون'),
-                    ],
-                  ),
-                ),
                 PopupMenuItem(
                   value: 'clear',
                   child: Row(
@@ -255,42 +289,63 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
         ),
         body: Column(
           children: [
-            // زر Aa لإظهار شريط الأدوات
-            if (!_showFormatToolbar)
+            // الأزرار الأساسية (Aa و 🎨)
+            if (!_showFormatToolbar && !_showColorToolbar)
               Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: Responsive.wp(context, 2),
-                  vertical: Responsive.hp(context, 1),
+                  vertical: Responsive.hp(context, 0.8),
                 ),
                 color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton.icon(
+                    // زر Aa
+                    ElevatedButton(
                       onPressed: () => setState(() => _showFormatToolbar = true),
-                      icon: Icon(Icons.text_fields, size: 20),
-                      label: Text('Aa'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Aa',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    Spacer(),
-                    Text(
-                      'أدوات التنسيق',
-                      style: TextStyle(
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                        fontSize: 14,
+                    
+                    SizedBox(width: 12),
+                    
+                    // زر الألوان 🎨
+                    ElevatedButton(
+                      onPressed: () => setState(() => _showColorToolbar = true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
+                      child: Icon(Icons.palette, size: 20),
                     ),
                   ],
                 ),
               ),
             
-            // شريط الأدوات الكامل (Toolbar)
+            // شريط أدوات التنسيق (Toolbar)
             if (_showFormatToolbar) _buildToolbar(isDark),
             
-            if (_showFormatToolbar)
+            // شريط أدوات الألوان
+            if (_showColorToolbar) _buildColorToolbar(isDark),
+            
+            if (_showFormatToolbar || _showColorToolbar)
               Divider(height: 1, color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
             
             // منطقة التحرير
@@ -309,18 +364,23 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
                         color: isDark ? Colors.white : Colors.black87,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'العنوان...',
+                        hintText: 'العنوان',
                         hintStyle: TextStyle(
                           color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
                         ),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
                       ),
                       maxLines: null,
                     ),
                     
-                    SizedBox(height: Layout.smallGap(context)),
-                    
-                    // حقل المحتوى
+                    // حقل المحتوى (بدون فاصل)
                     TextField(
                       controller: _contentController,
                       style: _currentTextStyle.copyWith(
@@ -333,6 +393,13 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
                           color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
                         ),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
                       ),
                       maxLines: null,
                       minLines: 15,
@@ -356,22 +423,15 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
         vertical: Responsive.hp(context, 1),
       ),
       color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            // زر إغلاق (×)
-            IconButton(
-              icon: Icon(Icons.close, size: 24),
-              onPressed: () => setState(() => _showFormatToolbar = false),
-              tooltip: 'إخفاء الأدوات',
-              color: Colors.red,
-              padding: EdgeInsets.all(4),
-            ),
-            
-            VerticalDivider(width: 16, color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-            
-            // Bold
+      child: Row(
+        children: [
+          // الأدوات في شريط قابل للتمرير
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // Bold
             _buildToolbarButton(
               icon: Icons.format_bold,
               isActive: _isBold,
@@ -450,8 +510,31 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
             
             // Text Color
             _buildColorButton(isDark),
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+          
+          // زر إغلاق ثابت (×)
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.close, size: 18),
+              onPressed: () => setState(() => _showFormatToolbar = false),
+              tooltip: 'إخفاء',
+              color: Colors.red.shade400,
+              padding: EdgeInsets.all(8),
+              constraints: BoxConstraints(minWidth: 40, minHeight: 40),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -551,52 +634,145 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
     );
   }
 
-  void _showColorPicker() {
-    final colors = [
-      null, // No color
-      Colors.red.shade100.value,
-      Colors.blue.shade100.value,
-      Colors.green.shade100.value,
-      Colors.yellow.shade100.value,
-      Colors.purple.shade100.value,
-      Colors.orange.shade100.value,
-      Colors.pink.shade100.value,
-      Colors.teal.shade100.value,
+  Widget _buildColorToolbar(bool isDark) {
+    final backgroundColors = [
+      {'color': null, 'label': 'بدون لون'},
+      {'color': Colors.red.shade100.value, 'label': 'أحمر'},
+      {'color': Colors.blue.shade100.value, 'label': 'أزرق'},
+      {'color': Colors.green.shade100.value, 'label': 'أخضر'},
+      {'color': Colors.yellow.shade100.value, 'label': 'أصفر'},
+      {'color': Colors.purple.shade100.value, 'label': 'بنفسجي'},
+      {'color': Colors.orange.shade100.value, 'label': 'برتقالي'},
+      {'color': Colors.pink.shade100.value, 'label': 'وردي'},
+      {'color': Colors.teal.shade100.value, 'label': 'تيل'},
     ];
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('اختر لون الخلفية'),
-        content: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: colors.map((colorValue) {
-            return GestureDetector(
-              onTap: () {
-                setState(() => _backgroundColor = colorValue);
-                Navigator.pop(context);
-              },
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: colorValue != null ? Color(colorValue) : Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: _backgroundColor == colorValue 
-                        ? Colors.blue 
-                        : Colors.grey.shade300,
-                    width: _backgroundColor == colorValue ? 3 : 1,
+    final textColors = [
+      {'color': Colors.black87, 'label': 'أسود'},
+      {'color': Colors.red, 'label': 'أحمر'},
+      {'color': Colors.blue, 'label': 'أزرق'},
+      {'color': Colors.green, 'label': 'أخضر'},
+      {'color': Colors.orange, 'label': 'برتقالي'},
+      {'color': Colors.purple, 'label': 'بنفسجي'},
+    ];
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Responsive.wp(context, 2),
+        vertical: Responsive.hp(context, 1),
+      ),
+      color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+      child: Row(
+        children: [
+          // قسم ألوان الخلفية
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, bottom: 4),
+                    child: Text(
+                      'لون الخلفية:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-                child: colorValue == null 
-                    ? Icon(Icons.block, color: Colors.grey) 
-                    : null,
+                  Row(
+                    children: backgroundColors.map((item) {
+                      final colorValue = item['color'] as int?;
+                      final isSelected = _backgroundColor == colorValue;
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _backgroundColor = colorValue),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: colorValue != null ? Color(colorValue) : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected ? Colors.blue : Colors.grey.shade400,
+                                width: isSelected ? 3 : 1,
+                              ),
+                            ),
+                            child: colorValue == null 
+                                ? Icon(Icons.block, color: Colors.grey, size: 20) 
+                                : null,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, bottom: 4),
+                    child: Text(
+                      'لون النص:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: textColors.map((item) {
+                      final color = item['color'] as Color;
+                      final isSelected = _textColor == color;
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _textColor = color),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected ? Colors.blue : Colors.grey.shade400,
+                                width: isSelected ? 3 : 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          ),
+          
+          // زر إغلاق ثابت (×)
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.close, size: 18),
+              onPressed: () => setState(() => _showColorToolbar = false),
+              tooltip: 'إخفاء',
+              color: Colors.red.shade400,
+              padding: EdgeInsets.all(8),
+              constraints: BoxConstraints(minWidth: 40, minHeight: 40),
+            ),
+          ),
+        ],
       ),
     );
   }

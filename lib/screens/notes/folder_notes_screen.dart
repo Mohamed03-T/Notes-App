@@ -162,6 +162,8 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> {
                 );
                 debugPrint('🟡 نتيجة الإغلاق: $result');
                 if (result == true && mounted) {
+                  // تحديث الواجهة لعرض الملاحظات المحفوظة
+                  debugPrint('🔄 تحديث الواجهة...');
                   setState(() {});
                 }
               } catch (e) {

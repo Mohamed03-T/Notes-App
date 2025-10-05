@@ -592,10 +592,10 @@ class NotesRepository {
     }
   }
 
-  Future<bool> saveNoteToFolder(String content, String pageId, String folderId, {String type = 'simple', int? colorValue, List<String>? attachments}) async {
-    debugPrint('NotesRepository: saveNoteToFolder called with content="$content", pageId="$pageId", folderId="$folderId"');
-    final id = Uuid().v4();
-    debugPrint('NotesRepository: generated id = $id');
+  Future<bool> saveNoteToFolder(String content, String pageId, String folderId, {String? noteId, String type = 'simple', int? colorValue, List<String>? attachments}) async {
+    debugPrint('NotesRepository: saveNoteToFolder called with content="$content", pageId="$pageId", folderId="$folderId", noteId="$noteId"');
+    final id = noteId ?? Uuid().v4(); // استخدام noteId الموجود أو إنشاء جديد
+    debugPrint('NotesRepository: using id = $id');
     
     try {
       // إنشاء كائن الملاحظة
@@ -619,13 +619,31 @@ class NotesRepository {
         final currentNotes = prefs.getStringList(_notesKey) ?? [];
         debugPrint('NotesRepository: current notes count = ${currentNotes.length}');
         
+        // البحث عن الملاحظة الموجودة إذا كان noteId موجوداً
+        int existingIndex = -1;
+        int? existingCreatedAt;
+        if (noteId != null) {
+          existingIndex = currentNotes.indexWhere((noteStr) {
+            try {
+              final note = jsonDecode(noteStr);
+              if (note['id'] == noteId) {
+                existingCreatedAt = note['createdAt'];
+                return true;
+              }
+              return false;
+            } catch (e) {
+              return false;
+            }
+          });
+        }
+        
         final noteData = {
           'id': id,
           'content': content,
           'type': type,
           'pageId': pageId,
           'folderId': folderId,
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
+          'createdAt': existingCreatedAt ?? DateTime.now().millisecondsSinceEpoch,
           'colorValue': colorValue,
           'isPinned': false,
           'isArchived': false,
@@ -635,8 +653,15 @@ class NotesRepository {
         };
         debugPrint('NotesRepository: created noteData = $noteData');
         
-        currentNotes.add(jsonEncode(noteData));
-        debugPrint('NotesRepository: added note to list, new count = ${currentNotes.length}');
+        if (existingIndex != -1) {
+          // تحديث الملاحظة الموجودة
+          currentNotes[existingIndex] = jsonEncode(noteData);
+          debugPrint('NotesRepository: updated existing note at index $existingIndex');
+        } else {
+          // إضافة ملاحظة جديدة
+          currentNotes.add(jsonEncode(noteData));
+          debugPrint('NotesRepository: added new note to list, new count = ${currentNotes.length}');
+        }
         
         // حفظ نسخة احتياطية كل 10 ملاحظات
         if (currentNotes.length % 10 == 0) {
@@ -652,15 +677,26 @@ class NotesRepository {
         debugPrint('NotesRepository: saved to SharedPreferences successfully');
       }
       
-      // إضافة إلى الذاكرة للتحديث الفوري للواجهة
+      // تحديث الذاكرة للتحديث الفوري للواجهة
       final folder = getFolder(pageId, folderId);
       if (folder != null) {
-        folder.notes.add(newNote);
+        // البحث عن الملاحظة الموجودة في الذاكرة
+        final existingNoteIndex = folder.notes.indexWhere((note) => note.id == id);
+        if (existingNoteIndex != -1) {
+          // تحديث الملاحظة الموجودة
+          folder.notes[existingNoteIndex] = newNote;
+          debugPrint('NotesRepository: updated existing note in memory at index $existingNoteIndex');
+        } else {
+          // إضافة ملاحظة جديدة
+          folder.notes.add(newNote);
+          debugPrint('NotesRepository: added new note to in-memory folder');
+        }
+        
         // تحديث وقت المجلد
         _updateFolderTimestamp(pageId, folderId);
         // وضع علامة على وجود تغييرات جديدة
         _hasNewChanges = true;
-        debugPrint('NotesRepository: added to in-memory folder, new folder notes count = ${folder.notes.length}');
+        debugPrint('NotesRepository: folder notes count = ${folder.notes.length}');
         
         // طباعة حالة جميع المجلدات للتشخيص
         _printAllFoldersStatus();
