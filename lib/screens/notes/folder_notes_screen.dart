@@ -4,7 +4,6 @@ import '../../generated/l10n/app_localizations.dart';
 import '../../components/note_card/note_card.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/layout/layout_helpers.dart';
-import 'note_detail.dart';
 import '../../widgets/speed_dial_fab.dart';
 import 'rich_note_editor.dart';
 
@@ -20,8 +19,16 @@ class FolderNotesScreen extends StatefulWidget {
   State<FolderNotesScreen> createState() => _FolderNotesScreenState();
 }
 
+enum NoteSortType {
+  newestFirst,    // الأحدث أولاً
+  oldestFirst,    // الأقدم أولاً
+  alphabetical,   // أبجدياً (أ-ي)
+  reverseAlpha,   // أبجدياً عكسي (ي-أ)
+}
+
 class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindingObserver {
   NotesRepository? repo;
+  NoteSortType _sortType = NoteSortType.newestFirst; // الترتيب الافتراضي
   
   @override
   void initState() {
@@ -57,6 +64,44 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
       setState(() {});
     }
   }
+  
+  List _sortNotes(List notes) {
+    final sorted = List.from(notes);
+    
+    sorted.sort((a, b) {
+      // الملاحظات المثبتة دائماً في الأعلى
+      if (a.isPinned != b.isPinned) {
+        return a.isPinned ? -1 : 1;
+      }
+      
+      // ثم الترتيب حسب النوع المحدد
+      switch (_sortType) {
+        case NoteSortType.newestFirst:
+          // معالجة null values
+          final aDate = a.updatedAt ?? a.createdAt;
+          final bDate = b.updatedAt ?? b.createdAt;
+          return bDate.compareTo(aDate); // الأحدث أولاً
+        
+        case NoteSortType.oldestFirst:
+          // معالجة null values
+          final aDate = a.updatedAt ?? a.createdAt;
+          final bDate = b.updatedAt ?? b.createdAt;
+          return aDate.compareTo(bDate); // الأقدم أولاً
+        
+        case NoteSortType.alphabetical:
+          final aContent = a.content.toLowerCase();
+          final bContent = b.content.toLowerCase();
+          return aContent.compareTo(bContent); // أ-ي
+        
+        case NoteSortType.reverseAlpha:
+          final aContent = a.content.toLowerCase();
+          final bContent = b.content.toLowerCase();
+          return bContent.compareTo(aContent); // ي-أ
+      }
+    });
+    
+    return sorted;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +124,9 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
     
     debugPrint('📋 FolderNotesScreen: عرض ${folder.notes.length} ملاحظة');
     
+    // ترتيب الملاحظات
+    final sortedNotes = _sortNotes(folder.notes);
+    
     final reserved = kToolbarHeight + MediaQuery.of(context).padding.top;
     final avail = Layout.availableHeight(context, reservedHeight: reserved);
 
@@ -92,6 +140,100 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
             Navigator.of(context).popUntil((route) => route.isFirst);
           },
         ),
+        actions: [
+          // زر الترتيب
+          PopupMenuButton<NoteSortType>(
+            icon: Icon(Icons.sort),
+            tooltip: 'ترتيب الملاحظات',
+            onSelected: (NoteSortType type) {
+              setState(() {
+                _sortType = type;
+              });
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: NoteSortType.newestFirst,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 20,
+                      color: _sortType == NoteSortType.newestFirst ? Colors.blue : null,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'الأحدث أولاً',
+                      style: TextStyle(
+                        color: _sortType == NoteSortType.newestFirst ? Colors.blue : null,
+                        fontWeight: _sortType == NoteSortType.newestFirst ? FontWeight.bold : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: NoteSortType.oldestFirst,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 20,
+                      color: _sortType == NoteSortType.oldestFirst ? Colors.blue : null,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'الأقدم أولاً',
+                      style: TextStyle(
+                        color: _sortType == NoteSortType.oldestFirst ? Colors.blue : null,
+                        fontWeight: _sortType == NoteSortType.oldestFirst ? FontWeight.bold : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: NoteSortType.alphabetical,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.sort_by_alpha,
+                      size: 20,
+                      color: _sortType == NoteSortType.alphabetical ? Colors.blue : null,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'أبجدياً (أ-ي)',
+                      style: TextStyle(
+                        color: _sortType == NoteSortType.alphabetical ? Colors.blue : null,
+                        fontWeight: _sortType == NoteSortType.alphabetical ? FontWeight.bold : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: NoteSortType.reverseAlpha,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.sort_by_alpha,
+                      size: 20,
+                      color: _sortType == NoteSortType.reverseAlpha ? Colors.blue : null,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'أبجدياً (ي-أ)',
+                      style: TextStyle(
+                        color: _sortType == NoteSortType.reverseAlpha ? Colors.blue : null,
+                        fontWeight: _sortType == NoteSortType.reverseAlpha ? FontWeight.bold : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: SizedBox(
@@ -99,18 +241,55 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.6),
             child: ListView(
-              children: folder.notes.map((n) => Padding(
+              children: sortedNotes.map((n) => Padding(
                 padding: EdgeInsets.only(bottom: Layout.smallGap(context)),
                 child: NoteCard(
                   note: n,
                   onTap: () async {
+                    debugPrint('📝 فتح ملاحظة للتعديل: ${n.id}');
+                    
+                    // فصل العنوان عن المحتوى
+                    String? initialTitle;
+                    String? initialContent;
+                    
+                    final allLines = n.content.split('\n');
+                    final lines = <String>[];
+                    for (var line in allLines) {
+                      if (line.trim().isNotEmpty) {
+                        lines.add(line);
+                      }
+                    }
+                    
+                    if (lines.length > 1) {
+                      final firstLine = lines.first.trim();
+                      if (firstLine.length <= 50 && !firstLine.endsWith('.') && !firstLine.endsWith('،')) {
+                        initialTitle = firstLine;
+                        initialContent = lines.skip(1).join('\n');
+                      } else {
+                        initialTitle = null;
+                        initialContent = n.content;
+                      }
+                    } else {
+                      initialTitle = null;
+                      initialContent = n.content;
+                    }
+                    
                     final changed = await Navigator.push<bool?>(
                       context,
-                      MaterialPageRoute(builder: (_) => NoteDetailScreen(pageId: widget.pageId, folderId: widget.folderId, note: n)),
+                      MaterialPageRoute(
+                        builder: (_) => RichNoteEditor(
+                          pageId: widget.pageId,
+                          folderId: widget.folderId,
+                          initialTitle: initialTitle,
+                          initialContent: initialContent,
+                          initialColor: n.colorValue,
+                          existingNoteId: n.id, // تمرير معرف الملاحظة للتعديل
+                        ),
+                      ),
                     );
+                    
                     if (changed == true) {
-                      if (!mounted) return;
-                      setState(() {});
+                      await _refreshData();
                     }
                   },
                   onPin: () async {

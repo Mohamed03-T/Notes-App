@@ -13,6 +13,7 @@ class RichNoteEditor extends StatefulWidget {
   final String? initialTitle;
   final String? initialContent;
   final int? initialColor;
+  final String? existingNoteId; // معرّف الملاحظة الموجودة للتعديل
 
   const RichNoteEditor({
     super.key,
@@ -21,6 +22,7 @@ class RichNoteEditor extends StatefulWidget {
     this.initialTitle,
     this.initialContent,
     this.initialColor,
+    this.existingNoteId,
   });
 
   @override
@@ -52,6 +54,12 @@ class _RichNoteEditorState extends State<RichNoteEditor> {
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _contentController = TextEditingController(text: widget.initialContent ?? '');
     _backgroundColor = widget.initialColor;
+    
+    // إذا كان هناك معرف ملاحظة موجود، استخدمه
+    if (widget.existingNoteId != null) {
+      _savedNoteId = widget.existingNoteId;
+      debugPrint('📝 RichNoteEditor: فتح ملاحظة موجودة للتعديل - noteId: $_savedNoteId');
+    }
     
     // إعادة تعيين حالة الحفظ عند الكتابة
     _titleController.addListener(() {

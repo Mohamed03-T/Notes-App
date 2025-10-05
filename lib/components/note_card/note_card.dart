@@ -107,10 +107,10 @@ class NoteCard extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                           ],
-                          // عرض المحتوى
+                          // عرض المحتوى (4-5 أسطر فقط)
                           Text(
-                            titleText != null ? _getSnippet(contentText) : _getSnippet(note.content),
-                            maxLines: titleText != null ? 3 : 4,
+                            titleText != null ? contentText : note.content,
+                            maxLines: titleText != null ? 4 : 5,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: Responsive.sp(context, titleText != null ? 1.8 : 2.0),
@@ -167,13 +167,6 @@ class NoteCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static String _getSnippet(String content) {
-    final lines = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
-    if (lines.isEmpty) return '';
-    final snippet = lines.length > 1 ? lines.sublist(0, 2).join(' ') : lines.first;
-    return snippet;
   }
 
   Widget _buildThumbnail(String path) {
