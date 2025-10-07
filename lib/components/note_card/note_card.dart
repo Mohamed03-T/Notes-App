@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import '../../models/note_model.dart';
 import '../../utils/responsive.dart';
@@ -60,7 +59,7 @@ class NoteCard extends StatelessWidget {
         break;
     }
 
-    final formatted = DateFormat.yMMMd(l10n.localeName).add_jm().format(note.createdAt);
+    final formatted = _getShortTimeAgo(note.updatedAt ?? note.createdAt);
     final bgColor = note.color ?? Theme.of(context).cardColor;
     final textColor = (bgColor.computeLuminance() > 0.6) ? Colors.black : Colors.white;
 
@@ -85,6 +84,7 @@ class NoteCard extends StatelessWidget {
             padding: const EdgeInsets.all(14.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // تقليص الحجم حسب المحتوى
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,10 +107,10 @@ class NoteCard extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                           ],
-                          // عرض المحتوى (4-5 أسطر فقط)
+                          // عرض المحتوى (حتى 10 أسطر)
                           Text(
                             titleText != null ? contentText : note.content,
-                            maxLines: titleText != null ? 4 : 5,
+                            maxLines: 10,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: Responsive.sp(context, titleText != null ? 1.8 : 2.0),
@@ -167,6 +167,30 @@ class NoteCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _getShortTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inSeconds < 60) {
+      return 'الآن';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}د';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}س';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}ي';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '${weeks}أ';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return '${months}ش';
+    } else {
+      final years = (difference.inDays / 365).floor();
+      return '${years}س';
+    }
   }
 
   Widget _buildThumbnail(String path) {

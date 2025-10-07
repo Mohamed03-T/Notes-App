@@ -238,12 +238,16 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
       body: SafeArea(
         child: SizedBox(
           height: avail,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.6),
-            child: ListView(
-              children: sortedNotes.map((n) => Padding(
-                padding: EdgeInsets.only(bottom: Layout.smallGap(context)),
-                child: NoteCard(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.6),
+              child: Wrap(
+                spacing: Layout.smallGap(context), // المسافة الأفقية
+                runSpacing: Layout.smallGap(context), // المسافة العمودية
+                children: sortedNotes.map((n) {
+                  return SizedBox(
+                    width: (MediaQuery.of(context).size.width - Layout.horizontalPadding(context) * 1.2 - Layout.smallGap(context)) / 2,
+                    child: NoteCard(
                   note: n,
                   onTap: () async {
                     debugPrint('📝 فتح ملاحظة للتعديل: ${n.id}');
@@ -331,8 +335,10 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                       messenger.showSnackBar(SnackBar(content: Text('Share failed')));
                     }
                   },
-                ),
-              )).toList(),
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ),
