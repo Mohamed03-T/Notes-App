@@ -30,6 +30,7 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
   NotesRepository? repo;
   NoteSortType _sortType = NoteSortType.newestFirst; // الترتيب الافتراضي
   String? _selectedNoteId; // معرف الملاحظة المحددة عند الضغط المطول
+  String? _draggingNoteId; // معرف الملاحظة التي يتم سحبها حالياً
   
   @override
   void initState() {
@@ -62,6 +63,19 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
     if (repo != null) {
       final folder = repo!.getFolder(widget.pageId, widget.folderId);
       debugPrint('📊 عدد الملاحظات: ${folder?.notes.length}');
+      setState(() {});
+    }
+  }
+  
+  Future<void> _reorderNotes(String draggedNoteId, String targetNoteId) async {
+    debugPrint('🔄 إعادة ترتيب الملاحظات: من $draggedNoteId إلى $targetNoteId');
+    if (repo != null) {
+      await repo!.reorderNote(
+        widget.pageId, 
+        widget.folderId, 
+        draggedNoteId, 
+        targetNoteId
+      );
       setState(() {});
     }
   }
@@ -332,13 +346,14 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                 
                 for (int i = 0; i < sortedNotes.length; i++) {
                   final n = sortedNotes[i];
-                  final noteWidget = Container(
+                  final noteWidget = SizedBox(
                     width: itemWidth,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: NoteCard(
-                      note: n,
-                      onTap: _selectedNoteId == null 
-                          ? () async {
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: NoteCard(
+                        note: n,
+                        onTap: _selectedNoteId == null 
+                            ? () async {
                     debugPrint('📝 فتح ملاحظة للتعديل: ${n.id}');
                     
                     // فصل العنوان عن المحتوى
@@ -392,6 +407,13 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                           _selectedNoteId = n.id;
                         });
                       },
+                      onReorder: (draggedNoteId, targetNoteId) async {
+                        // إعادة ترتيب الملاحظات عند السحب والإفلات
+                        await _reorderNotes(draggedNoteId, targetNoteId);
+                      },
+                      onDragStart: () => setState(() => _draggingNoteId = n.id),
+                      onDragEnd: () => setState(() => _draggingNoteId = null),
+                      ),
                     ),
                   );
                   

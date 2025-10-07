@@ -503,6 +503,40 @@ class NotesRepository {
     }
   }
   
+  /// إعادة ترتيب الملاحظات عند السحب والإفلات
+  Future<void> reorderNote(String pageId, String folderId, String draggedNoteId, String targetNoteId) async {
+    try {
+      final folder = getFolder(pageId, folderId);
+      if (folder == null) return;
+      
+      // البحث عن الملاحظتين
+      final draggedIndex = folder.notes.indexWhere((n) => n.id == draggedNoteId);
+      final targetIndex = folder.notes.indexWhere((n) => n.id == targetNoteId);
+      
+      if (draggedIndex == -1 || targetIndex == -1) {
+        debugPrint('⚠️ لم يتم العثور على الملاحظات للترتيب');
+        return;
+      }
+      
+      // إعادة الترتيب في الذاكرة
+      final draggedNote = folder.notes.removeAt(draggedIndex);
+      folder.notes.insert(targetIndex, draggedNote);
+      
+      debugPrint('✅ تم إعادة ترتيب الملاحظة من $draggedIndex إلى $targetIndex');
+      
+      // حفظ الترتيب الجديد
+      if (_usingSqlite) {
+        // في حالة SQLite، يمكن حفظ ترتيب مخصص لاحقاً
+        // حالياً نكتفي بتحديث الذاكرة
+      } else {
+        // في SharedPreferences، نحفظ جميع الملاحظات بالترتيب الجديد
+        await _persistAllNotes();
+      }
+    } catch (e) {
+      debugPrint('❌ خطأ في إعادة ترتيب الملاحظة: $e');
+    }
+  }
+  
   
   /// حذف مجلد من صفحة
   void deleteFolder(String pageId, String folderId) {
