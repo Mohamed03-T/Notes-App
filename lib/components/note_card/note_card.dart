@@ -12,8 +12,9 @@ class NoteCard extends StatelessWidget {
   final void Function()? onDelete;
   final void Function()? onShare;
   final void Function()? onTap;
+  final void Function()? onLongPress; // للضغط المطول
 
-  const NoteCard({super.key, required this.note, this.onPin, this.onArchive, this.onDelete, this.onShare, this.onTap});
+  const NoteCard({super.key, required this.note, this.onPin, this.onArchive, this.onDelete, this.onShare, this.onTap, this.onLongPress});
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +60,6 @@ class NoteCard extends StatelessWidget {
         break;
     }
 
-    final formatted = _getShortTimeAgo(note.updatedAt ?? note.createdAt);
     final bgColor = note.color ?? Theme.of(context).cardColor;
     final textColor = (bgColor.computeLuminance() > 0.6) ? Colors.black : Colors.white;
 
@@ -80,6 +80,7 @@ class NoteCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.all(14.0),
             child: Column(
@@ -131,91 +132,26 @@ class NoteCard extends StatelessWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    if (note.isPinned) 
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Icon(Icons.push_pin, size: 14, color: textColor.withOpacity(0.8)),
-                      ),
-                    if (note.isArchived) 
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Icon(Icons.archive, size: 14, color: textColor.withOpacity(0.8)),
-                      ),
-                    const Spacer(),
-                    Text(
-                      formatted, 
-                      style: TextStyle(
-                        fontSize: Responsive.sp(context, 1.5), 
-                        color: textColor.withOpacity(0.7),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: PopupMenuButton<String>(
-                        padding: EdgeInsets.zero,
-                        icon: Icon(Icons.more_vert, size: 18, color: textColor.withOpacity(0.7)),
-                        onSelected: (v) {
-                          switch (v) {
-                            case 'pin':
-                              if (onPin != null) onPin!();
-                              break;
-                            case 'archive':
-                              if (onArchive != null) onArchive!();
-                              break;
-                            case 'delete':
-                              if (onDelete != null) onDelete!();
-                              break;
-                            case 'share':
-                              if (onShare != null) onShare!();
-                              break;
-                          }
-                        },
-                        itemBuilder: (ctx) => [
-                          PopupMenuItem(value: 'pin', child: Text(note.isPinned ? 'Unpin' : 'Pin')),
-                          PopupMenuItem(value: 'archive', child: Text(note.isArchived ? 'Unarchive' : 'Archive')),
-                          PopupMenuItem(value: 'delete', child: Text('Delete', style: const TextStyle(color: Colors.red))),
-                          PopupMenuItem(value: 'share', child: Text('Share')),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                // إظهار أيقونات الحالة فقط (مثبت/مؤرشف) بدون التاريخ والقائمة
+                if (note.isPinned || note.isArchived) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      if (note.isPinned) 
+                        Icon(Icons.push_pin, size: 14, color: textColor.withOpacity(0.6)),
+                      if (note.isPinned && note.isArchived)
+                        const SizedBox(width: 6),
+                      if (note.isArchived) 
+                        Icon(Icons.archive, size: 14, color: textColor.withOpacity(0.6)),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  static String _getShortTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-    
-    if (difference.inSeconds < 60) {
-      return 'الآن';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}د';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}س';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}ي';
-    } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return '${weeks}أ';
-    } else if (difference.inDays < 365) {
-      final months = (difference.inDays / 30).floor();
-      return '${months}ش';
-    } else {
-      final years = (difference.inDays / 365).floor();
-      return '${years}س';
-    }
   }
 
   Widget _buildThumbnail(String path) {

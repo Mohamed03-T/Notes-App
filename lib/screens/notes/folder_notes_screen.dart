@@ -29,6 +29,7 @@ enum NoteSortType {
 class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindingObserver {
   NotesRepository? repo;
   NoteSortType _sortType = NoteSortType.newestFirst; // الترتيب الافتراضي
+  String? _selectedNoteId; // معرف الملاحظة المحددة عند الضغط المطول
   
   @override
   void initState() {
@@ -132,16 +133,28 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(folder.title),
+        title: _selectedNoteId == null 
+            ? Text(folder.title)
+            : Text('1 محدد'), // عرض عدد الملاحظات المحددة
         automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, size: Layout.iconSize(context) + 2),
-          onPressed: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-        ),
-        actions: [
-          // زر الترتيب
+        leading: _selectedNoteId == null
+            ? IconButton(
+                icon: Icon(Icons.arrow_back, size: Layout.iconSize(context) + 2),
+                onPressed: () {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+              )
+            : IconButton(
+                icon: Icon(Icons.close, size: Layout.iconSize(context) + 2),
+                onPressed: () {
+                  setState(() {
+                    _selectedNoteId = null; // إلغاء التحديد
+                  });
+                },
+              ),
+        actions: _selectedNoteId == null
+            ? [
+          // زر الترتيب (يظهر في الوضع العادي فقط)
           PopupMenuButton<NoteSortType>(
             icon: Icon(Icons.sort),
             tooltip: 'ترتيب الملاحظات',
@@ -233,6 +246,74 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
               ),
             ],
           ),
+          ]
+        : [
+          // أزرار الإجراءات عند تحديد ملاحظة
+          IconButton(
+            icon: Icon(Icons.push_pin),
+            tooltip: 'تثبيت',
+            onPressed: () async {
+              await repo!.togglePin(widget.pageId, widget.folderId, _selectedNoteId!);
+              setState(() {
+                _selectedNoteId = null;
+              });
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.archive),
+            tooltip: 'أرشفة',
+            onPressed: () async {
+              await repo!.toggleArchive(widget.pageId, widget.folderId, _selectedNoteId!);
+              setState(() {
+                _selectedNoteId = null;
+              });
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.share),
+            tooltip: 'مشاركة',
+            onPressed: () async {
+              final note = sortedNotes.firstWhere((n) => n.id == _selectedNoteId);
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                if ((note.attachments ?? []).isNotEmpty) {
+                  final xfiles = (note.attachments ?? []).map((p) => XFile(p)).toList();
+                  await Share.shareXFiles(xfiles, text: note.content);
+                } else {
+                  await Share.share(note.content);
+                }
+              } catch (e) {
+                messenger.showSnackBar(SnackBar(content: Text('فشلت المشاركة')));
+              }
+              setState(() {
+                _selectedNoteId = null;
+              });
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.delete, color: Colors.red),
+            tooltip: 'حذف',
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              await repo!.deleteNote(widget.pageId, widget.folderId, _selectedNoteId!);
+              setState(() {
+                _selectedNoteId = null;
+              });
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text('تم حذف الملاحظة'),
+                  action: SnackBarAction(
+                    label: 'تراجع',
+                    onPressed: () async {
+                      await repo!.restoreNote(widget.pageId, widget.folderId, _selectedNoteId!);
+                      if (!mounted) return;
+                      setState(() {});
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
       body: SafeArea(
@@ -256,7 +337,8 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                     margin: const EdgeInsets.only(bottom: 12),
                     child: NoteCard(
                       note: n,
-                      onTap: () async {
+                      onTap: _selectedNoteId == null 
+                          ? () async {
                     debugPrint('📝 فتح ملاحظة للتعديل: ${n.id}');
                     
                     // فصل العنوان عن المحتوى
@@ -302,45 +384,13 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                     if (changed == true) {
                       await _refreshData();
                     }
-                      },
-                      onPin: () async {
-                        await repo!.togglePin(widget.pageId, widget.folderId, n.id);
-                        setState(() {});
-                      },
-                      onArchive: () async {
-                        await repo!.toggleArchive(widget.pageId, widget.folderId, n.id);
-                        setState(() {});
-                      },
-                      onDelete: () async {
-                        final messenger = ScaffoldMessenger.of(context);
-                        await repo!.deleteNote(widget.pageId, widget.folderId, n.id);
-                        setState(() {});
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text('Note deleted'),
-                            action: SnackBarAction(
-                              label: 'Undo',
-                              onPressed: () async {
-                                await repo!.restoreNote(widget.pageId, widget.folderId, n.id);
-                                if (!mounted) return;
-                                setState(() {});
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                      onShare: () async {
-                        final messenger = ScaffoldMessenger.of(context);
-                        try {
-                          if ((n.attachments ?? []).isNotEmpty) {
-                            final xfiles = (n.attachments ?? []).map((p) => XFile(p)).toList();
-                            await Share.shareXFiles(xfiles, text: n.content);
-                          } else {
-                            await Share.share(n.content);
                           }
-                        } catch (e) {
-                          messenger.showSnackBar(SnackBar(content: Text('Share failed')));
-                        }
+                          : null, // تعطيل النقر العادي عند وجود تحديد
+                      onLongPress: () {
+                        // تفعيل وضع التحديد
+                        setState(() {
+                          _selectedNoteId = n.id;
+                        });
                       },
                     ),
                   );
