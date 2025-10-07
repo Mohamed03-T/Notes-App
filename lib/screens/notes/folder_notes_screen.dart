@@ -239,17 +239,24 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
         child: SizedBox(
           height: avail,
           child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: Layout.horizontalPadding(context) * 0.6),
-              child: Wrap(
-                spacing: Layout.smallGap(context), // المسافة الأفقية
-                runSpacing: Layout.smallGap(context), // المسافة العمودية
-                children: sortedNotes.map((n) {
-                  return SizedBox(
-                    width: (MediaQuery.of(context).size.width - Layout.horizontalPadding(context) * 1.2 - Layout.smallGap(context)) / 2,
+            padding: const EdgeInsets.all(8),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // حساب عرض كل عمود (نصف الشاشة تقريباً مع المسافات)
+                final itemWidth = (constraints.maxWidth - 12) / 2; // 12 = spacing بين العناصر
+                
+                // تقسيم الملاحظات إلى عمودين
+                final leftColumn = <Widget>[];
+                final rightColumn = <Widget>[];
+                
+                for (int i = 0; i < sortedNotes.length; i++) {
+                  final n = sortedNotes[i];
+                  final noteWidget = Container(
+                    width: itemWidth,
+                    margin: const EdgeInsets.only(bottom: 12),
                     child: NoteCard(
-                  note: n,
-                  onTap: () async {
+                      note: n,
+                      onTap: () async {
                     debugPrint('📝 فتح ملاحظة للتعديل: ${n.id}');
                     
                     // فصل العنوان عن المحتوى
@@ -295,50 +302,74 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                     if (changed == true) {
                       await _refreshData();
                     }
-                  },
-                  onPin: () async {
-                    await repo!.togglePin(widget.pageId, widget.folderId, n.id);
-                    setState(() {});
-                  },
-                  onArchive: () async {
-                    await repo!.toggleArchive(widget.pageId, widget.folderId, n.id);
-                    setState(() {});
-                  },
-                  onDelete: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    await repo!.deleteNote(widget.pageId, widget.folderId, n.id);
-                    setState(() {});
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text('Note deleted'),
-                        action: SnackBarAction(
-                          label: 'Undo',
-                          onPressed: () async {
-                            await repo!.restoreNote(widget.pageId, widget.folderId, n.id);
-                            if (!mounted) return;
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                  onShare: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    try {
-                      if ((n.attachments ?? []).isNotEmpty) {
-                        final xfiles = (n.attachments ?? []).map((p) => XFile(p)).toList();
-                        await Share.shareXFiles(xfiles, text: n.content);
-                      } else {
-                        await Share.share(n.content);
-                      }
-                    } catch (e) {
-                      messenger.showSnackBar(SnackBar(content: Text('Share failed')));
-                    }
-                  },
+                      },
+                      onPin: () async {
+                        await repo!.togglePin(widget.pageId, widget.folderId, n.id);
+                        setState(() {});
+                      },
+                      onArchive: () async {
+                        await repo!.toggleArchive(widget.pageId, widget.folderId, n.id);
+                        setState(() {});
+                      },
+                      onDelete: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        await repo!.deleteNote(widget.pageId, widget.folderId, n.id);
+                        setState(() {});
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('Note deleted'),
+                            action: SnackBarAction(
+                              label: 'Undo',
+                              onPressed: () async {
+                                await repo!.restoreNote(widget.pageId, widget.folderId, n.id);
+                                if (!mounted) return;
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                      onShare: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          if ((n.attachments ?? []).isNotEmpty) {
+                            final xfiles = (n.attachments ?? []).map((p) => XFile(p)).toList();
+                            await Share.shareXFiles(xfiles, text: n.content);
+                          } else {
+                            await Share.share(n.content);
+                          }
+                        } catch (e) {
+                          messenger.showSnackBar(SnackBar(content: Text('Share failed')));
+                        }
+                      },
                     ),
                   );
-                }).toList(),
-              ),
+                  
+                  // توزيع متساوي بين العمودين
+                  if (i % 2 == 0) {
+                    leftColumn.add(noteWidget);
+                  } else {
+                    rightColumn.add(noteWidget);
+                  }
+                }
+                
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: leftColumn,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        children: rightColumn,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),

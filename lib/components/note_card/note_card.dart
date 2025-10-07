@@ -92,6 +92,7 @@ class NoteCard extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min, // إضافة هنا أيضاً
                         children: [
                           // عرض العنوان فقط إذا كان موجوداً
                           if (titleText != null) ...[
@@ -103,21 +104,24 @@ class NoteCard extends StatelessWidget {
                                 fontSize: Responsive.sp(context, 2.1),
                                 fontWeight: FontWeight.w700,
                                 color: textColor,
+                                height: 1.3, // تقليل المسافة بين الأسطر
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                           ],
-                          // عرض المحتوى (حتى 10 أسطر)
-                          Text(
-                            titleText != null ? contentText : note.content,
-                            maxLines: 10,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: Responsive.sp(context, titleText != null ? 1.8 : 2.0),
-                              fontWeight: titleText != null ? FontWeight.normal : FontWeight.w500,
-                              color: textColor.withOpacity(titleText != null ? 0.92 : 1.0),
+                          // عرض المحتوى
+                          if (contentText.isNotEmpty || note.content.isNotEmpty)
+                            Text(
+                              titleText != null ? contentText : note.content,
+                              maxLines: 15, // زيادة إلى 15 سطر
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: Responsive.sp(context, titleText != null ? 1.8 : 2.0),
+                                fontWeight: titleText != null ? FontWeight.normal : FontWeight.w500,
+                                color: textColor.withOpacity(titleText != null ? 0.92 : 1.0),
+                                height: 1.4, // ارتفاع مناسب للأسطر
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -130,34 +134,55 @@ class NoteCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    if (note.isPinned) Icon(Icons.push_pin, size: 16, color: textColor.withOpacity(0.9)),
-                    if (note.isArchived) Icon(Icons.archive, size: 16, color: textColor.withOpacity(0.9)),
-                    Expanded(child: Container()),
-                    Text(formatted, style: TextStyle(fontSize: Responsive.sp(context, 1.6), color: textColor.withOpacity(0.75))),
-                    const SizedBox(width: 8),
-                    PopupMenuButton<String>(
-                      onSelected: (v) {
-                        switch (v) {
-                          case 'pin':
-                            if (onPin != null) onPin!();
-                            break;
-                          case 'archive':
-                            if (onArchive != null) onArchive!();
-                            break;
-                          case 'delete':
-                            if (onDelete != null) onDelete!();
-                            break;
-                          case 'share':
-                            if (onShare != null) onShare!();
-                            break;
-                        }
-                      },
-                      itemBuilder: (ctx) => [
-                        PopupMenuItem(value: 'pin', child: Text(note.isPinned ? 'Unpin' : 'Pin')),
-                        PopupMenuItem(value: 'archive', child: Text(note.isArchived ? 'Unarchive' : 'Archive')),
-                        PopupMenuItem(value: 'delete', child: Text('Delete', style: const TextStyle(color: Colors.red))),
-                        PopupMenuItem(value: 'share', child: Text('Share')),
-                      ],
+                    if (note.isPinned) 
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Icon(Icons.push_pin, size: 14, color: textColor.withOpacity(0.8)),
+                      ),
+                    if (note.isArchived) 
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Icon(Icons.archive, size: 14, color: textColor.withOpacity(0.8)),
+                      ),
+                    const Spacer(),
+                    Text(
+                      formatted, 
+                      style: TextStyle(
+                        fontSize: Responsive.sp(context, 1.5), 
+                        color: textColor.withOpacity(0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.more_vert, size: 18, color: textColor.withOpacity(0.7)),
+                        onSelected: (v) {
+                          switch (v) {
+                            case 'pin':
+                              if (onPin != null) onPin!();
+                              break;
+                            case 'archive':
+                              if (onArchive != null) onArchive!();
+                              break;
+                            case 'delete':
+                              if (onDelete != null) onDelete!();
+                              break;
+                            case 'share':
+                              if (onShare != null) onShare!();
+                              break;
+                          }
+                        },
+                        itemBuilder: (ctx) => [
+                          PopupMenuItem(value: 'pin', child: Text(note.isPinned ? 'Unpin' : 'Pin')),
+                          PopupMenuItem(value: 'archive', child: Text(note.isArchived ? 'Unarchive' : 'Archive')),
+                          PopupMenuItem(value: 'delete', child: Text('Delete', style: const TextStyle(color: Colors.red))),
+                          PopupMenuItem(value: 'share', child: Text('Share')),
+                        ],
+                      ),
                     ),
                   ],
                 ),
