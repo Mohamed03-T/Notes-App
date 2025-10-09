@@ -30,7 +30,7 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
   NotesRepository? repo;
   NoteSortType _sortType = NoteSortType.newestFirst; // الترتيب الافتراضي
   String? _selectedNoteId; // معرف الملاحظة المحددة عند الضغط المطول
-  String? _draggingNoteId; // معرف الملاحظة التي يتم سحبها حالياً
+
   
   @override
   void initState() {
@@ -411,8 +411,10 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                         // إعادة ترتيب الملاحظات عند السحب والإفلات
                         await _reorderNotes(draggedNoteId, targetNoteId);
                       },
-                      onDragStart: () => setState(() => _draggingNoteId = n.id),
-                      onDragEnd: () => setState(() => _draggingNoteId = null),
+                      onDragStart: () => setState(() {
+                        _selectedNoteId = null;
+                      }),
+                      onDragEnd: () => setState(() {}),
                       ),
                     ),
                   );

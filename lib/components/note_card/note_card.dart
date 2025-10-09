@@ -1,12 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import '../../models/note_model.dart';
 import '../../utils/responsive.dart';
 import '../../generated/l10n/app_localizations.dart';
 
-class NoteCard extends StatelessWidget {
+class NoteCard extends StatefulWidget {
   final NoteModel note;
   final void Function()? onPin;
   final void Function()? onArchive;
@@ -17,12 +18,25 @@ class NoteCard extends StatelessWidget {
   final void Function(String draggedNoteId, String targetNoteId)? onReorder; // لإعادة الترتيب
   final void Function()? onDragStart; // عند بدء السحب
   final void Function()? onDragEnd; // عند انتهاء السحب
-
   const NoteCard({super.key, required this.note, this.onPin, this.onArchive, this.onDelete, this.onShare, this.onTap, this.onLongPress, this.onReorder, this.onDragStart, this.onDragEnd});
+
+  @override
+  State<NoteCard> createState() => _NoteCardState();
+}
+
+class _NoteCardState extends State<NoteCard> {
+  bool _longPressMoved = false;
+  Offset? _initialPointerPos;
+  Timer? _longPressTimer;
+  bool _dragActive = false; // set when LongPressDraggable reports onDragStarted
+  static const int _actionHoldDelayMs = 300; // الوقت قبل إظهار قائمة الإجراءات
+  static const int _dragHoldDelayMs = 900; // يجب أن يطابق delay الخاص بـ LongPressDraggable
+  final double _moveThreshold = 6.0; // pixels to consider as movement
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final note = widget.note;
 
     // تحديد ما إذا كان هناك عنوان منفصل أم لا
     String? titleText;
@@ -80,13 +94,13 @@ class NoteCard extends StatelessWidget {
           BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
-      child: Material(
+        child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          // تعطيل onLongPress عندما يكون onReorder موجود (لتفعيل السحب)
-          onLongPress: onReorder == null ? onLongPress : null,
+          onTap: widget.onTap,
+          // سنعالج الضغط الطويل يدويًا لتمييز بين السحب وفتح القائمة
+          onLongPress: null,
           child: Padding(
             padding: const EdgeInsets.all(14.0),
             child: Column(
@@ -94,7 +108,7 @@ class NoteCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min, // تقليص الحجم حسب المحتوى
               children: [
                 // أيقونة السحب (تظهر فقط إذا كان onReorder موجود)
-                if (onReorder != null)
+                if (widget.onReorder != null)
                   Center(
                     child: Container(
                       width: 32,
@@ -162,20 +176,7 @@ class NoteCard extends StatelessWidget {
                     if (note.isArchived) 
                       Icon(Icons.archive, size: 14, color: textColor.withOpacity(0.6)),
                     const Spacer(),
-                    // زر القائمة (يظهر فقط عندما يكون onReorder موجود)
-                    if (onReorder != null && onLongPress != null)
-                      InkWell(
-                        onTap: onLongPress,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Icon(
-                            Icons.more_vert,
-                            size: 18,
-                            color: textColor.withOpacity(0.6),
-                          ),
-                        ),
-                      ),
+                    // إزالة زر الثلاث نقاط: سنفتح قائمة الإجراءات عبر الضغط المطول
                   ],
                 ),
               ],
@@ -185,9 +186,26 @@ class NoteCard extends StatelessWidget {
       ),
     );
 
-  // إذا لم يتم تمرير onReorder، نعرض الكارد مباشرة
-  if (onReorder == null) {
-    return cardWidget;
+  // إذا لم يتم تمرير onReorder، نعرض الكارد مباشرة ولكن نحتاج أيضاً لمعالجة الضغط الطويل
+  if (widget.onReorder == null) {
+    // بدون سحب، نحتاج فقط لمعالجة التفاعل الطويل الافتراضي
+    return GestureDetector(
+      onLongPressStart: (_) {
+        _longPressMoved = false;
+      },
+      onLongPressMoveUpdate: (_) {
+        _longPressMoved = true;
+      },
+      onLongPressEnd: (_) {
+        final moved = _longPressMoved;
+        _longPressMoved = false;
+        if (!moved) {
+          widget.onLongPress?.call();
+        }
+      },
+      behavior: HitTestBehavior.translucent,
+      child: cardWidget,
+    );
   }
 
   // تغليف بـ DragTarget لاستقبال السحب (نفس طريقة المجلدات)
@@ -197,21 +215,29 @@ class NoteCard extends StatelessWidget {
       final draggedNoteId = details.data;
       debugPrint('🎯 تم قبول السحب: $draggedNoteId → ${note.id}');
       HapticFeedback.heavyImpact();
-      onReorder!(draggedNoteId, note.id);
+      widget.onReorder!(draggedNoteId, note.id);
     },
     builder: (context, candidateData, rejectedData) {
       final isTarget = candidateData.isNotEmpty;
       
       return LongPressDraggable<String>(
-        data: note.id,
-        delay: const Duration(milliseconds: 600), // نفس delay المجلدات
+  data: note.id,
+  delay: const Duration(milliseconds: _dragHoldDelayMs), // نفس delay المجلدات
         onDragStarted: () {
           HapticFeedback.mediumImpact();
-          if (onDragStart != null) onDragStart!();
+          if (widget.onDragStart != null) widget.onDragStart!();
+          // إذا بدأ السحب نلغي أي حالة ضغط مطول معلقة
+          _longPressMoved = true;
+          _dragActive = true;
+          _longPressTimer?.cancel();
           debugPrint('🎯 بدأ السحب للملاحظة: ${note.id}');
         },
         onDragEnd: (_) {
-          if (onDragEnd != null) onDragEnd!();
+          if (widget.onDragEnd != null) widget.onDragEnd!();
+          // إعادة تهيئة الحالة بعد انتهاء السحب
+          _longPressMoved = false;
+          _dragActive = false;
+          _longPressTimer?.cancel();
           debugPrint('✅ انتهى السحب');
         },
         feedback: Material(
@@ -274,14 +300,55 @@ class NoteCard extends StatelessWidget {
               ? Border.all(color: Colors.blue.withOpacity(0.5), width: 2)
               : null,
           ),
+          // نلتف حول الكارد بمستقبل إيماءات لنميز بين السحب وفتح القائمة عند الضغط المطول
           child: Opacity(
             opacity: isTarget ? 0.7 : 1.0,
-            child: cardWidget,
+            // Listener فقط - لا نستخدم GestureDetector داخل Draggable لكي لا نمنع
+            // LongPressDraggable من الحصول على الإيماءة. نستخدم أحداث المؤشر
+            // لتحديد ما إذا كان المستخدم حرك العنصر بعد الضغط الطويل.
+            child: Listener(
+              onPointerDown: (ev) {
+                _initialPointerPos = ev.position;
+                _longPressMoved = false;
+                _dragActive = false;
+                // بدء مؤقت الضغط الطويل؛ بعد انتهاء المؤقت نشغل الميزتين معًا
+                _longPressTimer?.cancel();
+                _longPressTimer = Timer(const Duration(milliseconds: _actionHoldDelayMs), () {
+                  if (!_longPressMoved && !_dragActive) {
+                    widget.onLongPress?.call();
+                  }
+                });
+              },
+              onPointerMove: (ev) {
+                if (_initialPointerPos != null) {
+                  final dx = (ev.position.dx - _initialPointerPos!.dx).abs();
+                  final dy = (ev.position.dy - _initialPointerPos!.dy).abs();
+                  if (dx > _moveThreshold || dy > _moveThreshold) {
+                    _longPressMoved = true;
+                    // إذا تحرك المستخدم نلغي المؤقت ونعطل جاهزية الضغط الطويل
+                    _longPressTimer?.cancel();
+                  }
+                }
+              },
+              onPointerUp: (ev) {
+                _longPressTimer?.cancel();
+                _initialPointerPos = null;
+                _longPressMoved = false;
+              },
+              behavior: HitTestBehavior.translucent,
+              child: cardWidget,
+            ),
           ),
         ),
       );
     },
   );
+  }
+
+  @override
+  void dispose() {
+    _longPressTimer?.cancel();
+    super.dispose();
   }
 
   Widget _buildThumbnail(String path) {
