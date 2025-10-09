@@ -84,7 +84,7 @@ class _NoteCardState extends State<NoteCard> {
   // تغليف الـ Card بـ Draggable و DragTarget
   final cardWidget = AnimatedContainer(
       duration: const Duration(milliseconds: 240),
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+  margin: const EdgeInsets.symmetric(vertical: 1.5, horizontal: 4),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
@@ -107,19 +107,6 @@ class _NoteCardState extends State<NoteCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min, // تقليص الحجم حسب المحتوى
               children: [
-                // أيقونة السحب (تظهر فقط إذا كان onReorder موجود)
-                if (widget.onReorder != null)
-                  Center(
-                    child: Container(
-                      width: 32,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: textColor.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -132,8 +119,7 @@ class _NoteCardState extends State<NoteCard> {
                           if (titleText != null) ...[
                             Text(
                               titleText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
                               style: TextStyle(
                                 fontSize: Responsive.sp(context, 2.1),
                                 fontWeight: FontWeight.w700,

@@ -334,7 +334,7 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
         child: SizedBox(
           height: avail,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 // حساب عرض كل عمود (نصف الشاشة تقريباً مع المسافات)
@@ -349,7 +349,7 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                   final noteWidget = SizedBox(
                     width: itemWidth,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: 4),
                       child: NoteCard(
                         note: n,
                         onTap: _selectedNoteId == null 
@@ -435,7 +435,7 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
                         children: leftColumn,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Column(
                         children: rightColumn,
