@@ -21,24 +21,11 @@ bool _usingSqlite = false;
 Future<void> _initialize() async {
   _store = SqliteNotesStore();
   
-  // التحقق من حالة الترحيل وتنفيذه تلقائياً
-  final migrationService = MigrationService();
-  final migrationStatus = await migrationService.checkMigrationStatus();
-  
-  if (migrationStatus == MigrationState.pending) {
-    // ترحيل تلقائي!
-    final result = await migrationService.startMigration();
-    _usingSqlite = result.success;
-  } else if (migrationStatus == MigrationState.completed) {
-    _usingSqlite = true;
-  }
-  
-  // تحميل من المصدر المناسب
-  if (_usingSqlite) {
-    await _loadFromSqlite();
-  } else {
-    await _loadFromSharedPreferences();
-  }
+  // المجموع الحالي: التطبيق يعمل على SQLite-only
+  // ملاحظة: آلية الترحيل الداخلية (من SharedPreferences) لم تعد مستخدمة.
+  _store = SqliteNotesStore();
+  _usingSqlite = true;
+  await _loadFromSqlite();
 }
 ```
 

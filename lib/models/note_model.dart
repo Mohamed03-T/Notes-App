@@ -8,6 +8,7 @@ class NoteModel {
   final String content; // simple representation: text or path
   final DateTime createdAt;
   final int? colorValue; // ARGB color stored as int
+  final int? sortOrder;
   final bool isPinned;
   final bool isArchived;
   final bool isDeleted;
@@ -20,6 +21,7 @@ class NoteModel {
     required this.content,
     DateTime? createdAt,
     this.colorValue,
+    this.sortOrder,
     this.isPinned = false,
     this.isArchived = false,
     this.isDeleted = false,

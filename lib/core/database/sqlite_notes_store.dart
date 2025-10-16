@@ -323,6 +323,21 @@ class SqliteNotesStore implements INotesStore {
       final db = await _dbHelper.database;
       final now = DateTime.now().millisecondsSinceEpoch;
 
+
+      // تحقق من وجود الصفحة
+      final pageExists = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM ${PagesTable.tableName} WHERE ${PagesTable.columnId} = ?', [pageId])) ?? 0;
+      if (pageExists == 0) {
+        return OperationResult.failure('الصفحة غير موجودة، لا يمكن حفظ الملاحظة');
+      }
+
+      // تحقق من وجود المجلد
+      final folderExists = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM ${FoldersTable.tableName} WHERE ${FoldersTable.columnId} = ?', [folderId])) ?? 0;
+      if (folderExists == 0) {
+        return OperationResult.failure('المجلد غير موجود، لا يمكن حفظ الملاحظة');
+      }
+
       await db.insert(
         NotesTable.tableName,
         {
@@ -332,6 +347,7 @@ class SqliteNotesStore implements INotesStore {
           NotesTable.columnType: note.type.name,
           NotesTable.columnContent: note.content,
           NotesTable.columnColorValue: note.colorValue,
+          NotesTable.columnSortOrder: note.sortOrder ?? 0,
           NotesTable.columnIsPinned: note.isPinned ? 1 : 0,
           NotesTable.columnIsArchived: note.isArchived ? 1 : 0,
           NotesTable.columnIsDeleted: note.isDeleted ? 1 : 0,
@@ -372,7 +388,8 @@ class SqliteNotesStore implements INotesStore {
         NotesTable.tableName,
         where: '${NotesTable.columnFolderId} = ? AND ${NotesTable.columnIsDeleted} = 0',
         whereArgs: [folderId],
-        orderBy: '${NotesTable.columnIsPinned} DESC, ${NotesTable.columnCreatedAt} DESC',
+        // Pinned notes first, then use persistent sort_order (ASC), then fallback to createdAt
+        orderBy: '${NotesTable.columnIsPinned} DESC, ${NotesTable.columnSortOrder} ASC, ${NotesTable.columnCreatedAt} DESC',
       );
 
       final notes = <NoteModel>[];
@@ -394,6 +411,7 @@ class SqliteNotesStore implements INotesStore {
             row[NotesTable.columnCreatedAt] as int,
           ),
           colorValue: row[NotesTable.columnColorValue] as int?,
+          sortOrder: row[NotesTable.columnSortOrder] as int?,
           isPinned: (row[NotesTable.columnIsPinned] as int) == 1,
           isArchived: (row[NotesTable.columnIsArchived] as int) == 1,
           isDeleted: (row[NotesTable.columnIsDeleted] as int) == 1,
@@ -470,6 +488,7 @@ class SqliteNotesStore implements INotesStore {
         NotesTable.tableName,
         {
           NotesTable.columnContent: note.content,
+          NotesTable.columnSortOrder: note.sortOrder ?? 0,
           NotesTable.columnColorValue: note.colorValue,
           NotesTable.columnIsPinned: note.isPinned ? 1 : 0,
           NotesTable.columnIsArchived: note.isArchived ? 1 : 0,

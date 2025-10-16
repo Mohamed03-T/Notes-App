@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../database/database_helper.dart';
 
 class LanguageManager extends ChangeNotifier {
   static final LanguageManager _instance = LanguageManager._internal();
@@ -37,9 +37,8 @@ class LanguageManager extends ChangeNotifier {
   ];
 
   Future<void> initializeLanguage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final languageCode = prefs.getString('language_code') ?? 'ar';
-    _currentLocale = Locale(languageCode);
+    final code = await DatabaseHelper.instance.getMetadata('language_code') ?? 'ar';
+    _currentLocale = Locale(code);
     notifyListeners();
   }
 
@@ -47,8 +46,7 @@ class LanguageManager extends ChangeNotifier {
     if (languageCode == _currentLocale.languageCode) return;
     
     _currentLocale = Locale(languageCode);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('language_code', languageCode);
+    await DatabaseHelper.instance.setMetadata('language_code', languageCode);
     notifyListeners();
   }
 }

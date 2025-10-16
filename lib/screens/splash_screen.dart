@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../core/database/database_helper.dart';
 import '../widgets/app_logo.dart';
 import '../core/layout/layout_helpers.dart';
 import '../utils/responsive.dart';
@@ -58,9 +58,9 @@ class _SplashScreenState extends State<SplashScreen>
     
     if (!mounted) return;
 
-    // التحقق من حالة onboarding
-    final prefs = await SharedPreferences.getInstance();
-    final seenOnboarding = prefs.getBool('seenOnboarding') ?? false;
+  // التحقق من حالة onboarding (مخزنة في DB metadata)
+  final seenStr = await DatabaseHelper.instance.getMetadata('seenOnboarding');
+  final seenOnboarding = seenStr == 'true';
 
     if (mounted) {
       Navigator.of(context).pushReplacement(

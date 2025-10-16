@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
+import 'package:uuid/Uuid.dart';
 import '../core/database/sqlite_notes_store.dart';
-import '../core/database/migration_service.dart';
 import '../models/note_model.dart';
 import '../models/folder_model.dart';
 import '../models/page_model.dart';
@@ -15,55 +14,10 @@ import '../models/page_model.dart';
 
 class SqliteUsageExample {
   final SqliteNotesStore _store = SqliteNotesStore();
-  final MigrationService _migrationService = MigrationService();
 
   /// مثال 1: التحقق من حالة الترحيل وإجرائه إن لزم الأمر
   Future<void> checkAndMigrate() async {
-    print('🔍 التحقق من حالة الترحيل...');
-    
-    final status = await _migrationService.checkMigrationStatus();
-    
-    switch (status) {
-      case MigrationState.notNeeded:
-        print('✅ لا حاجة للترحيل - لا توجد بيانات قديمة');
-        break;
-        
-      case MigrationState.completed:
-        print('✅ الترحيل تم بالفعل');
-        break;
-        
-      case MigrationState.pending:
-        print('⏳ بدء الترحيل...');
-        final result = await _migrationService.startMigration();
-        
-        if (result.success) {
-          final report = result.data!;
-          print('✅ الترحيل نجح!');
-          print('📊 الإحصائيات:');
-          print('   - الصفحات: ${report.oldPagesCount} → ${report.newPagesCount}');
-          print('   - المجلدات: ${report.newFoldersCount}');
-          print('   - الملاحظات: ${report.oldNotesCount} → ${report.newNotesCount}');
-          print('   - المدة: ${report.duration?.inSeconds ?? 0} ثانية');
-          
-          if (report.warnings.isNotEmpty) {
-            print('⚠️ تحذيرات:');
-            for (final warning in report.warnings) {
-              print('   - $warning');
-            }
-          }
-        } else {
-          print('❌ فشل الترحيل: ${result.error}');
-        }
-        break;
-        
-      case MigrationState.inProgress:
-        print('⏳ الترحيل قيد التنفيذ...');
-        break;
-        
-      case MigrationState.error:
-        print('❌ خطأ في التحقق من حالة الترحيل');
-        break;
-    }
+    print('ℹ️ Migration service removed — repository is SQLite-only.');
   }
 
   /// مثال 2: إنشاء صفحة جديدة مع مجلدات

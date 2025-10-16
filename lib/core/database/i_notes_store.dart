@@ -3,7 +3,7 @@ import '../../models/folder_model.dart';
 import '../../models/note_model.dart';
 
 /// واجهة تخزين البيانات - Data Store Interface
-/// تحدد العقد الموحد لجميع طرق التخزين (SharedPreferences, SQLite, Drift)
+/// تحدد العقد الموحد لجميع طرق التخزين (SQLite-backed stores are expected)
 /// 
 /// العقد (Contract):
 /// - كل دالة تُرجع Future<OperationResult<T>> يحتوي على:

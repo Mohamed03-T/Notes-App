@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../database/database_helper.dart';
 
 class ThemeManager extends ChangeNotifier {
   static ThemeManager? _instance;
@@ -32,14 +32,13 @@ class ThemeManager extends ChangeNotifier {
   }
 
   Future<void> _loadThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool('isDarkMode') ?? false;
+    final val = await DatabaseHelper.instance.getMetadata('isDarkMode');
+    _isDarkMode = val == 'true';
     notifyListeners();
   }
 
   Future<void> _saveThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', _isDarkMode);
+    await DatabaseHelper.instance.setMetadata('isDarkMode', _isDarkMode ? 'true' : 'false');
   }
 }
 

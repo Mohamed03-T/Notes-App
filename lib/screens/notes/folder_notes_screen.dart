@@ -76,45 +76,47 @@ class _FolderNotesScreenState extends State<FolderNotesScreen> with WidgetsBindi
         draggedNoteId, 
         targetNoteId
       );
-      setState(() {});
+      // إعادة تحميل الملاحظات من قاعدة البيانات بعد الترتيب
+      if (mounted) {
+        setState(() {
+          // يمكنك هنا استدعاء دالة تحميل الملاحظات من قاعدة البيانات إذا كانت موجودة
+          // أو إعادة بناء القائمة من repo
+        });
+      }
     }
   }
   
   List _sortNotes(List notes) {
     final sorted = List.from(notes);
-    
     sorted.sort((a, b) {
-      // الملاحظات المثبتة دائماً في الأعلى
+      // أولاً: الملاحظات المثبتة دائماً في الأعلى
       if (a.isPinned != b.isPinned) {
         return a.isPinned ? -1 : 1;
       }
-      
-      // ثم الترتيب حسب النوع المحدد
+      // ثانياً: الترتيب حسب sortOrder إذا كان موجوداً
+      if (a.sortOrder != null && b.sortOrder != null && a.sortOrder != b.sortOrder) {
+        return a.sortOrder!.compareTo(b.sortOrder!);
+      }
+      // ثالثاً: الترتيب حسب النوع المختار
       switch (_sortType) {
         case NoteSortType.newestFirst:
-          // معالجة null values
           final aDate = a.updatedAt ?? a.createdAt;
           final bDate = b.updatedAt ?? b.createdAt;
-          return bDate.compareTo(aDate); // الأحدث أولاً
-        
+          return bDate.compareTo(aDate);
         case NoteSortType.oldestFirst:
-          // معالجة null values
           final aDate = a.updatedAt ?? a.createdAt;
           final bDate = b.updatedAt ?? b.createdAt;
-          return aDate.compareTo(bDate); // الأقدم أولاً
-        
+          return aDate.compareTo(bDate);
         case NoteSortType.alphabetical:
           final aContent = a.content.toLowerCase();
           final bContent = b.content.toLowerCase();
-          return aContent.compareTo(bContent); // أ-ي
-        
+          return aContent.compareTo(bContent);
         case NoteSortType.reverseAlpha:
           final aContent = a.content.toLowerCase();
           final bContent = b.content.toLowerCase();
-          return bContent.compareTo(aContent); // ي-أ
+          return bContent.compareTo(aContent);
       }
     });
-    
     return sorted;
   }
 

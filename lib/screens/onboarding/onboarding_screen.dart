@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/database/database_helper.dart';
 import '../notes/notes_home.dart';
 import '../../widgets/app_logo.dart';
 import '../../core/layout/layout_helpers.dart';
@@ -53,8 +53,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _finishOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('seenOnboarding', true);
+    await DatabaseHelper.instance.setMetadata('seenOnboarding', 'true');
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const NotesHome()),

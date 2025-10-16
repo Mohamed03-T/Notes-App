@@ -77,6 +77,12 @@ class DatabaseHelper {
       await db.execute(NotesTable.indexPageId);
       await db.execute(NotesTable.indexFolderId);
       await db.execute(NotesTable.indexCreatedAt);
+      // index for sort order (if present)
+      try {
+        await db.execute(NotesTable.indexSortOrder);
+      } catch (_) {
+        // ignore if column/index not supported in older DB versions
+      }
       await db.execute(NotesTable.indexDeleted);
       debugPrint('✅ Notes table created');
 
@@ -105,11 +111,19 @@ class DatabaseHelper {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     debugPrint('🔄 Upgrading database from v$oldVersion to v$newVersion');
 
-    // سيتم إضافة منطق الترقية هنا في المستقبل
-    // مثال:
-    // if (oldVersion < 2) {
-    //   await db.execute('ALTER TABLE notes ADD COLUMN new_field TEXT');
-    // }
+    // Handle adding sort_order column in v2
+    if (oldVersion < 2 && newVersion >= 2) {
+      try {
+        await db.execute('ALTER TABLE ${NotesTable.tableName} ADD COLUMN ${NotesTable.columnSortOrder} INTEGER DEFAULT 0');
+        // create index if possible
+        try {
+          await db.execute(NotesTable.indexSortOrder);
+        } catch (_) {}
+        debugPrint('✅ Added ${NotesTable.columnSortOrder} column to notes table');
+      } catch (e) {
+        debugPrint('⚠️ Could not add sort_order column: $e');
+      }
+    }
   }
 
   /// تهيئة البيانات الوصفية

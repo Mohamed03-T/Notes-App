@@ -10,7 +10,7 @@ lib/core/database/
 ├── database_helper.dart         ✅ مدير قاعدة البيانات
 ├── i_notes_store.dart          ✅ واجهة التخزين الموحدة
 ├── sqlite_notes_store.dart     ✅ تنفيذ SQLite Store
-└── migration_service.dart      ✅ خدمة الترحيل الآمنة
+└── migration_service.dart      ❌ لم يعد مطلوبًا (تمت إزالته — النظام أصبح SQLite-only)
 
 lib/examples/
 └── sqlite_usage_example.dart   ✅ 10 أمثلة عملية
@@ -79,22 +79,9 @@ docs/
 
 ```dart
 import 'package:note_app/core/database/sqlite_notes_store.dart';
-import 'package:note_app/core/database/migration_service.dart';
 
-// 1. فحص حالة الترحيل
-final migrationService = MigrationService();
-final status = await migrationService.checkMigrationStatus();
-
-if (status == MigrationState.pending) {
-  // 2. بدء الترحيل
-  final result = await migrationService.startMigration();
-  
-  if (result.success) {
-    print('✅ الترحيل نجح!');
-  }
-}
-
-// 3. استخدام SQLite Store
+// هذا المشروع يعمل على SQLite-only: استخدم SqliteNotesStore مباشرة
+// مثال:
 final store = SqliteNotesStore();
 
 // حفظ ملاحظة
@@ -151,17 +138,11 @@ class NotesRepository {
   final INotesStore _store = SqliteNotesStore();
   
   Future<void> _initialize() async {
-    // فحص الترحيل
-    final migrationService = MigrationService();
-    final status = await migrationService.checkMigrationStatus();
-    
-    if (status == MigrationState.pending) {
-      await migrationService.startMigration();
-    }
-    
-    // تحميل البيانات من SQLite
+    // SQLite-only initialization
+    _store = SqliteNotesStore();
+    _usingSqlite = true;
     final pagesResult = await _store.getAllPages();
-    if (pagesResult.success) {
+    if (pagesResult.success && pagesResult.data != null) {
       _pages = pagesResult.data!;
     }
   }

@@ -3,7 +3,7 @@
 library;
 
 /// إصدار قاعدة البيانات الحالي
-const int kDatabaseVersion = 1;
+const int kDatabaseVersion = 2;
 
 /// اسم ملف قاعدة البيانات
 const String kDatabaseName = 'notes_app.db';
@@ -97,6 +97,7 @@ abstract class NotesTable {
   static const String columnFolderId = 'folder_id';
   static const String columnType = 'type';
   static const String columnContent = 'content';
+  static const String columnSortOrder = 'sort_order';
   static const String columnColorValue = 'color_value';
   static const String columnIsPinned = 'is_pinned';
   static const String columnIsArchived = 'is_archived';
@@ -116,6 +117,7 @@ abstract class NotesTable {
       $columnIsArchived INTEGER NOT NULL DEFAULT 0,
       $columnIsDeleted INTEGER NOT NULL DEFAULT 0,
       $columnCreatedAt INTEGER NOT NULL,
+      $columnSortOrder INTEGER DEFAULT 0,
       $columnUpdatedAt INTEGER NOT NULL,
       FOREIGN KEY ($columnPageId) REFERENCES ${PagesTable.tableName}(${PagesTable.columnId}) ON DELETE CASCADE,
       FOREIGN KEY ($columnFolderId) REFERENCES ${FoldersTable.tableName}(${FoldersTable.columnId}) ON DELETE CASCADE
@@ -136,6 +138,10 @@ abstract class NotesTable {
 
   static const String indexDeleted = '''
     CREATE INDEX idx_notes_deleted ON $tableName($columnIsDeleted, $columnIsArchived)
+  ''';
+
+  static const String indexSortOrder = '''
+    CREATE INDEX idx_notes_sort_order ON $tableName($columnSortOrder)
   ''';
 }
 

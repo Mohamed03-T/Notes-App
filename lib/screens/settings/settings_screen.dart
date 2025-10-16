@@ -303,6 +303,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _autoBackupTimer = Timer.periodic(const Duration(hours: 24), (_) async {
                             final repo = await NotesRepository.instance;
                             final json = await repo.exportBackupJson();
+                            if (json == null) {
+                              debugPrint('Auto-backup: export returned null');
+                              return;
+                            }
                             await _writeBackupToFile(json);
                             setState(() { _lastAutoBackup = DateTime.now(); });
                           });
@@ -323,6 +327,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         final messenger = ScaffoldMessenger.of(context);
                         final repo = await NotesRepository.instance;
                         final json = await repo.exportBackupJson();
+                        if (json == null) {
+                          if (!mounted) return;
+                          messenger.showSnackBar(SnackBar(content: Text(l10n.exportBackupFailed)));
+                          return;
+                        }
                         final saved = await _writeBackupToFile(json, promptSave: true);
                         if (!mounted) return;
                         messenger.showSnackBar(SnackBar(content: Text(saved ? l10n.exportBackupSaved : l10n.exportBackupFailed)));
@@ -352,11 +361,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: l10n.restoreFromKeySubtitle,
                       icon: Icons.restore_from_trash,
                       onTap: () async {
-                        final messenger = ScaffoldMessenger.of(context);
+                        // Prompt user to paste backup JSON and restore via SQLite-backed importer
                         final repo = await NotesRepository.instance;
-                        final ok = await repo.restoreFromPrefsBackup();
-                        if (!mounted) return;
-                        messenger.showSnackBar(SnackBar(content: Text(ok ? l10n.restoreFromKeySuccess : l10n.restoreFromKeyNotFound)));
+                        final TextEditingController controller = TextEditingController();
+                        await showDialog<void>(
+                          context: context,
+                          builder: (BuildContext ctx) {
+                            return AlertDialog(
+                              backgroundColor: AppTheme.getCardColor(ctx),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              title: Row(
+                                children: [
+                                  Icon(Icons.restore, color: Theme.of(ctx).colorScheme.primary),
+                                  const SizedBox(width: 8),
+                                  Text(l10n.restoreFromKeyTitle, style: Theme.of(ctx).textTheme.titleMedium),
+                                ],
+                              ),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(l10n.restoreFromKeySubtitle, style: Theme.of(ctx).textTheme.bodyMedium),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                    controller: controller,
+                                    maxLines: 8,
+                                    decoration: InputDecoration(
+                                      hintText: l10n.importBackupSubtitle,
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: Text(l10n.cancel),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(elevation: 0),
+                                  onPressed: () async {
+                                    final content = controller.text.trim();
+                                    if (content.isEmpty) {
+                                      // keep dialog open and show a temporary message
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.restoreFromKeyNotFound)));
+                                      return;
+                                    }
+                                    Navigator.of(ctx).pop();
+                                    final ok = await repo.importBackupJson(content);
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? l10n.restoreFromKeySuccess : l10n.importBackupFailed)));
+                                  },
+                                  child: Text(l10n.importBackupTitle),
+                                ),
+                              ],
+                            );
+                          },
+                        );
                       },
                     ),
                   ],

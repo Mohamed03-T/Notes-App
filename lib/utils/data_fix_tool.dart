@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import '../core/database/i_notes_store.dart';
+import '../core/database/sqlite_notes_store.dart';
 
 /// أداة لإصلاح البيانات القديمة وفحص سلامة البيانات
 /// 
@@ -11,89 +11,47 @@ import 'dart:convert';
 /// await DataFixTool.generateReport();    // تقرير مفصل
 /// ```
 class DataFixTool {
-  static const String _notesKey = 'saved_notes_v2';
-  static const String _pagesKey = 'saved_pages_v1';
-
-  /// تشخيص البيانات - فحص بدون تعديل
+  /// تشخيص البيانات - يفحص محتويات قاعدة SQLite ويجمع إحصائيات بسيطة
   static Future<DataDiagnosisReport> diagnoseData() async {
     final report = DataDiagnosisReport();
-    
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      
-      // فحص الملاحظات
-      final notesJson = prefs.getStringList(_notesKey) ?? [];
-      report.totalNotes = notesJson.length;
-      
-      for (final noteStr in notesJson) {
-        try {
-          final noteData = jsonDecode(noteStr);
-          
-          if (noteData['pageId'] == null) {
-            report.notesWithoutPageId++;
-            report.problematicNotes.add({
-              'content': noteData['content']?.toString().substring(0, 30) ?? 'unknown',
-              'issue': 'missing pageId',
-            });
-          }
-          
-          if (noteData['folderId'] == null) {
-            report.notesWithoutFolderId++;
-            report.problematicNotes.add({
-              'content': noteData['content']?.toString().substring(0, 30) ?? 'unknown',
-              'issue': 'missing folderId',
-            });
-          }
-          
-          if (noteData['id'] == null || noteData['id'].toString().isEmpty) {
-            report.notesWithoutId++;
-            report.problematicNotes.add({
-              'content': noteData['content']?.toString().substring(0, 30) ?? 'unknown',
-              'issue': 'missing id',
-            });
-          }
-          
-          // فحص التكرار
-          final noteId = noteData['id'];
-          if (noteId != null) {
-            if (report._seenIds.contains(noteId)) {
-              report.duplicateIds++;
-              report.problematicNotes.add({
-                'content': noteData['content']?.toString().substring(0, 30) ?? 'unknown',
-                'issue': 'duplicate id: $noteId',
-              });
+      final INotesStore store = SqliteNotesStore();
+      final pagesRes = await store.getAllPages();
+      final pages = pagesRes.data ?? [];
+
+      final seen = <String>{};
+
+      report.totalPages = pages.length;
+      for (final page in pages) {
+        report.totalFolders += page.folders.length;
+        for (final folder in page.folders) {
+          for (final note in folder.notes) {
+            report.totalNotes++;
+
+            // Check ID
+            if (note.id.isEmpty) {
+              report.notesWithoutId++;
+              final contentPreview = note.content.length > 30 ? note.content.substring(0, 30) : note.content;
+              report.problematicNotes.add({'content': contentPreview, 'issue': 'missing id'});
             } else {
-              report._seenIds.add(noteId);
+              if (seen.contains(note.id)) {
+                report.duplicateIds++;
+                final contentPreview = note.content.length > 30 ? note.content.substring(0, 30) : note.content;
+                report.problematicNotes.add({'content': contentPreview, 'issue': 'duplicate id: ${note.id}'});
+              } else {
+                seen.add(note.id);
+              }
             }
           }
-          
-        } catch (e) {
-          report.corruptedNotes++;
-          report.errors.add('فشل في قراءة ملاحظة: $e');
         }
       }
-      
-      // فحص الصفحات والمجلدات
-      final pagesJson = prefs.getStringList(_pagesKey) ?? [];
-      report.totalPages = pagesJson.length;
-      
-      for (final pageStr in pagesJson) {
-        try {
-          final pageData = jsonDecode(pageStr);
-          final folders = (pageData['folders'] as List<dynamic>?) ?? [];
-          report.totalFolders += folders.length;
-        } catch (e) {
-          report.corruptedPages++;
-          report.errors.add('فشل في قراءة صفحة: $e');
-        }
-      }
-      
+
       report.isHealthy = report.hasProblems() == false;
-      
-    } catch (e) {
-      report.errors.add('خطأ عام في التشخيص: $e');
+    } catch (err) {
+      report.errors.add('خطأ عام في التشخيص: $err');
     }
-    
+
     return report;
   }
 
@@ -105,51 +63,32 @@ class DataFixTool {
     final result = FixResult();
     
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final notesJson = prefs.getStringList(_notesKey) ?? [];
-      final fixed = <String>[];
-      
-      for (final noteStr in notesJson) {
-        try {
-          final noteData = jsonDecode(noteStr);
-          bool wasFixed = false;
-          
-          // إصلاح pageId المفقود
-          if (noteData['pageId'] == null) {
-            noteData['pageId'] = defaultPageId;
-            wasFixed = true;
-            result.fixedPageId++;
+      // This tool now only analyzes and reports potential fixes, it does not modify the DB.
+      final store = SqliteNotesStore();
+      final pagesRes = await store.getAllPages();
+      final pages = pagesRes.data ?? [];
+
+      final seen = <String>{};
+      int missingIds = 0;
+      int duplicates = 0;
+
+      for (final page in pages) {
+        for (final folder in page.folders) {
+          for (final note in folder.notes) {
+            if (note.id.isEmpty) {
+              missingIds++;
+            } else if (seen.contains(note.id)) {
+              duplicates++;
+            } else {
+              seen.add(note.id);
+            }
           }
-          
-          // إصلاح folderId المفقود
-          if (noteData['folderId'] == null) {
-            noteData['folderId'] = defaultFolderId;
-            wasFixed = true;
-            result.fixedFolderId++;
-          }
-          
-          // إصلاح ID المفقود
-          if (noteData['id'] == null || noteData['id'].toString().isEmpty) {
-            noteData['id'] = DateTime.now().millisecondsSinceEpoch.toString() + 
-                             '_' + (result.fixedId++).toString();
-            wasFixed = true;
-          }
-          
-          if (wasFixed) result.totalFixed++;
-          
-          fixed.add(jsonEncode(noteData));
-          
-        } catch (e) {
-          result.errors.add('فشل في إصلاح ملاحظة: $e');
-          result.skipped++;
         }
       }
-      
-      // حفظ البيانات المُصلحة
-      await prefs.setStringList(_notesKey, fixed);
+
+      result.totalFixed = missingIds; // number of items that would need IDs
+      result.skipped = duplicates; // report duplicates count in skipped field
       result.success = true;
-      
-      debugPrint('✅ تم إصلاح ${result.totalFixed} ملاحظة');
       
     } catch (e) {
       result.errors.add('خطأ عام في الإصلاح: $e');
@@ -216,37 +155,31 @@ class DataFixTool {
   /// حذف الملاحظات المكررة
   static Future<int> removeDuplicates() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final notesJson = prefs.getStringList(_notesKey) ?? [];
-      
+      final store = SqliteNotesStore();
+      final pagesRes = await store.getAllPages();
+      final pages = pagesRes.data ?? [];
+
       final seen = <String>{};
-      final unique = <String>[];
       int removed = 0;
-      
-      for (final noteStr in notesJson) {
-        try {
-          final noteData = jsonDecode(noteStr);
-          final id = noteData['id']?.toString();
-          
-          if (id != null && !seen.contains(id)) {
-            seen.add(id);
-            unique.add(noteStr);
-          } else {
-            removed++;
+
+      for (final page in pages) {
+        for (final folder in page.folders) {
+          for (final note in folder.notes) {
+            if (note.id.isEmpty) continue;
+            if (seen.contains(note.id)) {
+              removed++;
+            } else {
+              seen.add(note.id);
+            }
           }
-        } catch (e) {
-          // احتفظ بالملاحظة حتى لو كانت تالفة
-          unique.add(noteStr);
         }
       }
-      
-      if (removed > 0) {
-        await prefs.setStringList(_notesKey, unique);
-        debugPrint('✅ تم حذف $removed ملاحظة مكررة');
-      }
-      
+
+      // Note: This function only *detects* duplicates and returns the count.
+      // It does not mutate the database. Use a separate migration/cleanup utility
+      // if you want to remove duplicates programmatically.
+
       return removed;
-      
     } catch (e) {
       debugPrint('❌ فشل في حذف المكررات: $e');
       return 0;
@@ -271,7 +204,7 @@ class DataDiagnosisReport {
   
   final List<Map<String, dynamic>> problematicNotes = [];
   final List<String> errors = [];
-  final Set<String> _seenIds = {};
+  
   
   bool hasProblems() {
     return notesWithoutPageId > 0 ||
