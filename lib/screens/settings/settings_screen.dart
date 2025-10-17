@@ -10,7 +10,11 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../core/database/database_helper.dart';
 import '../../repositories/notes_repository.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 // conditional import for web download helper
@@ -29,6 +33,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoBackupEnabled = false;
   DateTime? _lastAutoBackup;
   Timer? _autoBackupTimer;
+  String? _backupDirPath;
+  static const MethodChannel _storageChannel = MethodChannel('noty/storage');
+
+  Future<String?> _requestTreeAccess() async {
+    try {
+      final res = await _storageChannel.invokeMethod<String>('requestTreeAccess');
+      return res;
+    } catch (e) {
+      debugPrint('requestTreeAccess failed: $e');
+      return null;
+    }
+  }
 
   Future<bool> _writeBackupToFile(String json, {bool promptSave = false}) async {
     try {
@@ -88,15 +104,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Request standard storage permission
           final status = await Permission.storage.request();
           if (!status.isGranted) {
-            debugPrint('Storage permission denied');
-            return false;
+            debugPrint('Storage permission denied - falling back to app Documents folder');
+            // Do not fail; fall back to app-specific documents directory which does not require storage permission
+            try {
+              targetDir = await getApplicationDocumentsDirectory();
+            } catch (e) {
+              debugPrint('Failed to get application documents directory: $e');
+              // final fallback
+              targetDir = Directory.systemTemp;
+            }
           }
         }
       } catch (e) {
         debugPrint('Permission request failed: $e');
       }
 
-      final fileName = 'notes_backup_${DateTime.now().toIso8601String().replaceAll(':', '-')}.json';
+      // Use app-specific folder 'noty' and consistent backup file naming
+      final safeTimestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final folderName = 'noty';
+      final fileName = 'noty_backup_$safeTimestamp.json';
+      // If the user explicitly requested a prompt save (Export action), try asking
+      // the platform to pick a location (this lets the user save to Downloads or
+      // another public folder). If that fails or the user cancels, fall back to
+      // the app-specific 'noty' folder.
+      if (promptSave && !kIsWeb) {
+        try {
+          final picked = await FilePicker.platform.saveFile(
+            dialogTitle: 'حفظ النسخة الاحتياطية',
+            fileName: fileName,
+            bytes: Uint8List.fromList(utf8.encode(json)),
+          );
+          if (picked != null && picked.isNotEmpty) {
+            final outFile = File(picked);
+            await outFile.create(recursive: true);
+            await outFile.writeAsString(json);
+            debugPrint('Backup saved to $picked (user chosen)');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('تم حفظ النسخة الاحتياطية في: $picked'),
+                behavior: SnackBarBehavior.floating,
+              ));
+            }
+            return true;
+          } else {
+            // The save dialog may not be supported on all devices/OS versions or the user cancelled.
+            // Fallback: create a temporary file and open the system share sheet so the user
+            // can save/send the backup (works reliably across platforms).
+            try {
+              final tmpDir = await getTemporaryDirectory();
+              final tmpFile = File('${tmpDir.path}/$fileName');
+              await tmpFile.create(recursive: true);
+              await tmpFile.writeAsString(json);
+              await Share.shareFiles([tmpFile.path], text: 'نسخة احتياطية لتطبيق Noty');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('تم فتح نافذة المشاركة لحفظ أو إرسال النسخة الاحتياطية'),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
+              return true;
+            } catch (e) {
+              debugPrint('share fallback failed: $e');
+            }
+          }
+        } catch (e) {
+          debugPrint('saveFile dialog failed: $e');
+          // Continue to fallback below
+        }
+      }
       if (kIsWeb) {
         final ok = await webDownloadString(fileName, json);
         if (ok) {
@@ -105,11 +180,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return ok;
       }
 
-      final file = File('${targetDir!.path}/$fileName');
+      // If user selected a persistent backup directory, try it first
+      if (_backupDirPath != null && _backupDirPath!.isNotEmpty) {
+        try {
+          debugPrint('Attempting to write backup to user-selected dir: ${_backupDirPath}');
+          final userDir = Directory(_backupDirPath!);
+          debugPrint('userDir.exists(): ${await userDir.exists()}');
+          if (!await userDir.exists()) {
+            debugPrint('userDir does not exist, trying to create it');
+            await userDir.create(recursive: true);
+          }
+          final userFile = File('${userDir.path}/$fileName');
+          debugPrint('Creating file at ${userFile.path}');
+          await userFile.create(recursive: true);
+          await userFile.writeAsString(json);
+          // prune older backups in this folder
+          await _pruneOldBackups(userDir, 'noty_backup_');
+          debugPrint('Backup saved to ${userFile.path} (user folder)');
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ النسخة الاحتياطية في: ${userFile.path}'), behavior: SnackBarBehavior.floating));
+          return true;
+        } catch (e) {
+          debugPrint('Failed to write to user backup dir $_backupDirPath: $e');
+          debugPrint(StackTrace.current.toString());
+          // If on Android, attempt SAF flow automatically (request tree access and write inside it)
+          if (!kIsWeb && Platform.isAndroid) {
+            try {
+              final treeUri = await _requestTreeAccess();
+              if (treeUri != null && treeUri.isNotEmpty) {
+                final bytes = Uint8List.fromList(utf8.encode(json));
+                final ok = await _storageChannel.invokeMethod<bool>('writeFileToTree', {
+                  'treeUri': treeUri,
+                  'fileName': fileName,
+                  'bytes': bytes,
+                });
+                if (ok == true) {
+                  try {
+                    await _storageChannel.invokeMethod('pruneTreeBackups', {'treeUri': treeUri, 'prefix': 'noty_backup_', 'keep': 3});
+                  } catch (_) {}
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ النسخة الاحتياطية في المجلد المختار عبر صلاحية النظام.'), behavior: SnackBarBehavior.floating));
+                  return true;
+                }
+              }
+            } catch (e2) {
+              debugPrint('SAF fallback failed: $e2');
+            }
+          }
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الحفظ في المجلد المختار، سيتم الحفظ في مجلد التطبيق بدلاً منه. خطأ: ${e.toString()}'), behavior: SnackBarBehavior.floating));
+          }
+          // Continue to fallback behavior
+        }
+      }
+
+      // Ensure the app-specific folder exists inside the chosen targetDir
+      final appDir = Directory('${targetDir!.path}/$folderName');
+      if (!await appDir.exists()) {
+        try {
+          await appDir.create(recursive: true);
+        } catch (e) {
+          // Fallback to targetDir if creation fails
+          debugPrint('Failed to create app folder $folderName: $e');
+        }
+      }
+
+      final file = File('${appDir.path}/$fileName');
       await file.create(recursive: true);
       await file.writeAsString(json);
 
+      // prune older backups in appDir as well
+      await _pruneOldBackups(appDir, 'noty_backup_');
+
       debugPrint('Backup saved to ${file.path}');
+      if (mounted) {
+        final visiblePath = file.path;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تم حفظ النسخة الاحتياطية في: $visiblePath'),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
       return true;
     } catch (e) {
       debugPrint('Failed to write backup: $e (${e.runtimeType})');
@@ -124,6 +272,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ));
       }
       return false;
+    }
+  }
+
+  // Remove older backup files in [dir] that match [prefix], keep only the newest 3
+  Future<void> _pruneOldBackups(Directory dir, String prefix) async {
+    try {
+      if (!await dir.exists()) return;
+      final files = await dir.list().where((e) => e is File && e.path.split('/').last.startsWith(prefix)).cast<File>().toList();
+      if (files.length <= 3) return;
+      files.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+      final toDelete = files.skip(3);
+      for (final f in toDelete) {
+        try {
+          await f.delete();
+          debugPrint('Pruned old backup: ${f.path}');
+        } catch (e) {
+          debugPrint('Failed to delete old backup ${f.path}: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('Prune old backups failed: $e');
     }
   }
 
@@ -188,6 +357,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                         );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _buildListTile(
+                      title: 'اختيار مجلد النسخ الاحتياطي',
+                      subtitle: _backupDirPath ?? 'لم يتم التعيين',
+                      icon: Icons.folder_open,
+                      onTap: () async {
+                        try {
+                          String? pickedDir;
+                          if (kIsWeb) {
+                            // Not supported on web: fallback to null
+                            pickedDir = null;
+                          } else {
+                            pickedDir = await FilePicker.platform.getDirectoryPath(dialogTitle: 'اختر مجلداً لحفظ النسخ الاحتياطية');
+                          }
+                          if (pickedDir != null && pickedDir.isNotEmpty) {
+                            // Test write permission by creating and deleting a small temp file
+                            try {
+                              final testFile = File('$pickedDir${Platform.pathSeparator}.noty_write_test');
+                              await testFile.create(recursive: true);
+                              await testFile.writeAsString('test');
+                              await testFile.delete();
+                            } catch (e) {
+                              debugPrint('Selected directory not writable: $e');
+                              // Try SAF flow on Android
+                              if (!kIsWeb && Platform.isAndroid) {
+                                final treeUri = await _requestTreeAccess();
+                                if (treeUri != null && treeUri.isNotEmpty) {
+                                  await DatabaseHelper.instance.setMetadata('backup_dir', treeUri);
+                                  if (mounted) setState(() { _backupDirPath = treeUri; });
+                                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم منح الإذن وحفظ مسار النسخ الاحتياطي.'), behavior: SnackBarBehavior.floating));
+                                  return;
+                                }
+                              }
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('المجلد المختار غير قابل للكتابة. اختر مجلداً آخر أو اسمح بالأذونات.'), behavior: SnackBarBehavior.floating));
+                              return;
+                            }
+                            await DatabaseHelper.instance.setMetadata('backup_dir', pickedDir);
+                            if (mounted) setState(() { _backupDirPath = pickedDir; });
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم تعيين مجلد النسخ الاحتياطي: $pickedDir'), behavior: SnackBarBehavior.floating));
+                          } else {
+                            // user cancelled or not supported
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('لم يتم اختيار مجلد.')));
+                          }
+                        } catch (e) {
+                          debugPrint('Directory pick failed: $e');
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل اختيار المجلد: ${e.toString()}')));
+                        }
                       },
                     ),
                     const Divider(height: 1),
@@ -289,6 +507,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: l10n.backupAndSync,
                   icon: Icons.cloud_sync,
                   children: [
+                    _buildListTile(
+                      title: 'اختيار مجلد النسخ الاحتياطي',
+                      subtitle: _backupDirPath ?? 'لم يتم التعيين',
+                      icon: Icons.folder_open,
+                      onTap: () async {
+                        try {
+                          String? pickedDir;
+                          if (kIsWeb) {
+                            pickedDir = null;
+                          } else {
+                            pickedDir = await FilePicker.platform.getDirectoryPath(dialogTitle: 'اختر مجلداً لحفظ النسخ الاحتياطية');
+                          }
+                          if (pickedDir != null && pickedDir.isNotEmpty) {
+                            await DatabaseHelper.instance.setMetadata('backup_dir', pickedDir);
+                            if (mounted) setState(() { _backupDirPath = pickedDir; });
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم تعيين مجلد النسخ الاحتياطي: $pickedDir'), behavior: SnackBarBehavior.floating));
+                          } else {
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('لم يتم اختيار مجلد.')));
+                          }
+                        } catch (e) {
+                          debugPrint('Directory pick failed: $e');
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل اختيار المجلد: ${e.toString()}')));
+                        }
+                      },
+                    ),
+                    const Divider(height: 1),
                     _buildSwitchTile(
                       title: l10n.autoBackup,
             subtitle: _autoBackupEnabled
@@ -332,7 +576,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           messenger.showSnackBar(SnackBar(content: Text(l10n.exportBackupFailed)));
                           return;
                         }
-                        final saved = await _writeBackupToFile(json, promptSave: true);
+                        // Only prompt the save dialog when the user hasn't selected a backup folder.
+                        final shouldPrompt = _backupDirPath == null;
+                        final saved = await _writeBackupToFile(json, promptSave: shouldPrompt);
                         if (!mounted) return;
                         messenger.showSnackBar(SnackBar(content: Text(saved ? l10n.exportBackupSaved : l10n.exportBackupFailed)));
                       },
@@ -518,7 +764,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    // Could load persisted auto-backup setting in future
+    // Load persisted backup directory (if set by user)
+    () async {
+      try {
+        final path = await DatabaseHelper.instance.getMetadata('backup_dir');
+        if (mounted) setState(() { _backupDirPath = path; });
+      } catch (e) {
+        debugPrint('Failed to load backup_dir metadata: $e');
+      }
+    }();
   }
 
   @override
