@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -34,7 +35,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _lastAutoBackup;
   Timer? _autoBackupTimer;
   String? _backupDirPath;
+  bool _allowPrompt = false;
   static const MethodChannel _storageChannel = MethodChannel('noty/storage');
+  String _appVersion = '';
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = '${info.version}+${info.buildNumber}';
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load package info: $e');
+    }
+  }
 
   Future<String?> _requestTreeAccess() async {
     try {
@@ -199,11 +215,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           debugPrint('Backup saved to ${userFile.path} (user folder)');
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ النسخة الاحتياطية في: ${userFile.path}'), behavior: SnackBarBehavior.floating));
           return true;
-        } catch (e) {
+          } catch (e) {
           debugPrint('Failed to write to user backup dir $_backupDirPath: $e');
           debugPrint(StackTrace.current.toString());
-          // If on Android, attempt SAF flow automatically (request tree access and write inside it)
-          if (!kIsWeb && Platform.isAndroid) {
+          // Do not automatically open SAF/document tree during background/automatic flows.
+          // Only attempt SAF if the caller explicitly requested promptSave (user-initiated save).
+          if (!kIsWeb && Platform.isAndroid && promptSave) {
             try {
               final treeUri = await _requestTreeAccess();
               if (treeUri != null && treeUri.isNotEmpty) {
@@ -224,6 +241,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             } catch (e2) {
               debugPrint('SAF fallback failed: $e2');
             }
+          } else {
+            debugPrint('Skipping automatic SAF prompt (promptSave=$promptSave, allowPrompt=$_allowPrompt)');
           }
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الحفظ في المجلد المختار، سيتم الحفظ في مجلد التطبيق بدلاً منه. خطأ: ${e.toString()}'), behavior: SnackBarBehavior.floating));
@@ -293,6 +312,119 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } catch (e) {
       debugPrint('Prune old backups failed: $e');
+    }
+  }
+
+  // Check whether we should prompt the user to choose a backup folder (only once per 24 hours)
+  Future<bool> _shouldPromptForBackupFolder() async {
+    // don't prompt during initial build/restore phase
+    if (!_allowPrompt) return false;
+    try {
+      final raw = await DatabaseHelper.instance.getMetadata('last_backup_folder_prompt');
+      if (raw == null || raw.isEmpty) return true;
+      final last = DateTime.tryParse(raw);
+      if (last == null) return true;
+      return DateTime.now().difference(last) >= const Duration(hours: 24);
+    } catch (e) {
+      debugPrint('Error reading last prompt metadata: $e');
+      return true;
+    }
+  }
+
+  // Show an explanatory dialog before opening the folder picker. Returns true if the user chose to proceed now.
+  Future<bool> _showFolderExplainAndAsk() async {
+    if (!mounted) return false;
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) {
+            return AlertDialog(
+              backgroundColor: AppTheme.getCardColor(ctx),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: Row(
+                children: [
+                  Icon(Icons.folder_open, color: Theme.of(ctx).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text('تعيين مجلد النسخ الاحتياطي'),
+                ],
+              ),
+              content: Text('لضمان حفظ نسخك الاحتياطية خارج التطبيق وللحصول على نسخة يمكنك الوصول إليها بسهولة، يُفضّل اختيار مجلد على جهازك أو منح صلاحية مجلد. هل تريد اختيار المجلد الآن؟'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text('تذكّر لاحقاً'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text('اختر الآن'),
+                ),
+              ],
+            );
+          },
+        ) ?? false;
+  }
+
+  // Interactive folder picker/save flow used when auto-backup decides to prompt the user.
+  // Returns true if a backup was written.
+  Future<bool> _interactivePickFolderAndSave(String json) async {
+    try {
+      String? pickedDir;
+      if (kIsWeb) {
+        pickedDir = null;
+      } else {
+        pickedDir = await FilePicker.platform.getDirectoryPath(dialogTitle: 'اختر مجلداً لحفظ النسخ الاحتياطية');
+      }
+      if (pickedDir != null && pickedDir.isNotEmpty) {
+        try {
+          final testFile = File('$pickedDir${Platform.pathSeparator}.noty_write_test');
+          await testFile.create(recursive: true);
+          await testFile.writeAsString('test');
+          await testFile.delete();
+        } catch (e) {
+          debugPrint('Selected directory not writable: $e');
+          // Try SAF flow on Android
+          if (!kIsWeb && Platform.isAndroid) {
+            final treeUri = await _requestTreeAccess();
+            if (treeUri != null && treeUri.isNotEmpty) {
+              await DatabaseHelper.instance.setMetadata('backup_dir', treeUri);
+              if (mounted) setState(() { _backupDirPath = treeUri; });
+              // write via SAF
+              try {
+                final bytes = Uint8List.fromList(utf8.encode(json));
+                final ok = await _storageChannel.invokeMethod<bool>('writeFileToTree', {
+                  'treeUri': treeUri,
+                  'fileName': 'noty_backup_${DateTime.now().toIso8601String().replaceAll(':', '-')}.json',
+                  'bytes': bytes,
+                });
+                if (ok == true) {
+                  try {
+                    await _storageChannel.invokeMethod('pruneTreeBackups', {'treeUri': treeUri, 'prefix': 'noty_backup_', 'keep': 3});
+                  } catch (_) {}
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ النسخة الاحتياطية في المجلد المختار عبر صلاحية النظام.'), behavior: SnackBarBehavior.floating));
+                  return true;
+                }
+              } catch (e) {
+                debugPrint('SAF write after pick failed: $e');
+              }
+            }
+          }
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('المجلد المختار غير قابل للكتابة. اختر مجلداً آخر أو اسمح بالأذونات.'), behavior: SnackBarBehavior.floating));
+          return false;
+        }
+        await DatabaseHelper.instance.setMetadata('backup_dir', pickedDir);
+        if (mounted) setState(() { _backupDirPath = pickedDir; });
+        // Now write using existing non-interactive writer which will target the user dir
+        final ok = await _writeBackupToFile(json, promptSave: false);
+        return ok;
+      } else {
+        // user cancelled
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Interactive pick and save failed: $e');
+      return false;
+    } finally {
+      // record that we prompted now so we don't prompt again before 24h if user cancelled or chose
+      try { await DatabaseHelper.instance.setMetadata('last_backup_folder_prompt', DateTime.now().toIso8601String()); } catch (_) {}
     }
   }
 
@@ -371,6 +503,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             // Not supported on web: fallback to null
                             pickedDir = null;
                           } else {
+                            final shouldPrompt = await _shouldPromptForBackupFolder();
+                            if (shouldPrompt) {
+                              final accepted = await _showFolderExplainAndAsk();
+                              try { await DatabaseHelper.instance.setMetadata('last_backup_folder_prompt', DateTime.now().toIso8601String()); } catch (_) {}
+                              if (!accepted) {
+                                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم إلغاء اختيار المجلد.'), behavior: SnackBarBehavior.floating));
+                                return;
+                              }
+                            }
                             pickedDir = await FilePicker.platform.getDirectoryPath(dialogTitle: 'اختر مجلداً لحفظ النسخ الاحتياطية');
                           }
                           if (pickedDir != null && pickedDir.isNotEmpty) {
@@ -517,6 +658,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           if (kIsWeb) {
                             pickedDir = null;
                           } else {
+                            final shouldPrompt = await _shouldPromptForBackupFolder();
+                            if (shouldPrompt) {
+                              final accepted = await _showFolderExplainAndAsk();
+                              try { await DatabaseHelper.instance.setMetadata('last_backup_folder_prompt', DateTime.now().toIso8601String()); } catch (_) {}
+                              if (!accepted) {
+                                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم إلغاء اختيار المجلد.'), behavior: SnackBarBehavior.floating));
+                                return;
+                              }
+                            }
                             pickedDir = await FilePicker.platform.getDirectoryPath(dialogTitle: 'اختر مجلداً لحفظ النسخ الاحتياطية');
                           }
                           if (pickedDir != null && pickedDir.isNotEmpty) {
@@ -533,6 +683,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
                     const Divider(height: 1),
+                    _buildListTile(
+                      title: 'منح صلاحية المجلد',
+                      subtitle: _backupDirPath != null && _backupDirPath!.isNotEmpty ? 'المسار الحالي: ${_backupDirPath!}' : 'لم تُمنح بعد',
+                      icon: Icons.lock_open,
+                      onTap: () async {
+                        try {
+                          final shouldPrompt = await _shouldPromptForBackupFolder();
+                          if (shouldPrompt) {
+                            final accepted = await _showFolderExplainAndAsk();
+                            try { await DatabaseHelper.instance.setMetadata('last_backup_folder_prompt', DateTime.now().toIso8601String()); } catch (_) {}
+                            if (!accepted) return;
+                          }
+                          final treeUri = await _requestTreeAccess();
+                          if (treeUri != null && treeUri.isNotEmpty) {
+                            await DatabaseHelper.instance.setMetadata('backup_dir', treeUri);
+                            if (mounted) setState(() { _backupDirPath = treeUri; });
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم منح صلاحية المجلد وحفظ المسار.'), behavior: SnackBarBehavior.floating));
+                          } else {
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('لم يتم منح الإذن أو تم الإلغاء.')));
+                          }
+                        } catch (e) {
+                          debugPrint('Grant folder permission failed: $e');
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل منح صلاحية المجلد: ${e.toString()}')));
+                        }
+                      },
+                    ),
+                    
+                    const Divider(height: 1),
                     _buildSwitchTile(
                       title: l10n.autoBackup,
             subtitle: _autoBackupEnabled
@@ -542,18 +720,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       value: _autoBackupEnabled,
                       onChanged: (val) async {
                         setState(() => _autoBackupEnabled = val);
-                          if (val) {
-                          // Start a simple periodic timer (runs while app is in memory)
-                          _autoBackupTimer = Timer.periodic(const Duration(hours: 24), (_) async {
-                            final repo = await NotesRepository.instance;
-                            final json = await repo.exportBackupJson();
-                            if (json == null) {
-                              debugPrint('Auto-backup: export returned null');
-                              return;
+                        // persist setting
+                        try { await DatabaseHelper.instance.setMetadata('auto_backup_enabled', val ? 'true' : 'false'); } catch (_) {}
+                        if (val) {
+                          // perform an immediate backup now, but only prompt the user to choose a folder
+                          // if they haven't been prompted in the last 24 hours.
+                          final repo = await NotesRepository.instance;
+                          final json = await repo.exportBackupJson();
+                          if (json != null) {
+                            final shouldPrompt = _backupDirPath == null && await _shouldPromptForBackupFolder();
+                            if (shouldPrompt) {
+                              final accepted = await _showFolderExplainAndAsk();
+                              // record the prompt time regardless of choice so we don't nag repeatedly
+                              try { await DatabaseHelper.instance.setMetadata('last_backup_folder_prompt', DateTime.now().toIso8601String()); } catch (_) {}
+                              if (accepted) {
+                                await _interactivePickFolderAndSave(json);
+                                if (mounted) setState(() { _lastAutoBackup = DateTime.now(); });
+                              } else {
+                                final ok = await _writeBackupToFile(json, promptSave: false);
+                                if (ok && mounted) setState(() { _lastAutoBackup = DateTime.now(); });
+                              }
+                            } else {
+                              final ok = await _writeBackupToFile(json, promptSave: false);
+                              if (ok && mounted) setState(() { _lastAutoBackup = DateTime.now(); });
                             }
-                            await _writeBackupToFile(json);
-                            setState(() { _lastAutoBackup = DateTime.now(); });
-                          });
+                          }
+                          // Start periodic timer
+                          _startAutoBackupTimer();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.autoBackupPeriodicEnabledSnackOn), behavior: SnackBarBehavior.floating));
                         } else {
                           _autoBackupTimer?.cancel();
@@ -677,7 +870,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     _buildListTile(
                       title: l10n.version,
-                      subtitle: '',
+                      subtitle: _appVersion.isNotEmpty ? 'الإصدار: $_appVersion' : '',
                       icon: Icons.verified,
                       onTap: () {
                         _showAboutDialog();
@@ -741,8 +934,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                     SizedBox(width: Layout.smallGap(context)),
                                     Text(
-                                      l10n.version,
+                                      _appVersion.isNotEmpty ? _appVersion : l10n.version,
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: Layout.bodyFont(context)),
+                                    ),
+                                    SizedBox(width: 8),
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: BoxConstraints(),
+                                      icon: Icon(Icons.copy, size: Layout.iconSize(context) * 0.8, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
+                                      onPressed: () {
+                                        if (_appVersion.isNotEmpty) {
+                                          Clipboard.setData(ClipboardData(text: _appVersion));
+                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم نسخ رقم الإصدار إلى الحافظة'), behavior: SnackBarBehavior.floating));
+                                        }
+                                      },
                                     ),
                                 ],
                               ),
@@ -764,7 +969,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    // Load persisted backup directory (if set by user)
+    _loadAppVersion();
+    // Load persisted backup directory first, then restore auto-backup setting and resume timer if previously enabled
     () async {
       try {
         final path = await DatabaseHelper.instance.getMetadata('backup_dir');
@@ -772,7 +978,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } catch (e) {
         debugPrint('Failed to load backup_dir metadata: $e');
       }
+
+      try {
+        final enabled = await DatabaseHelper.instance.getMetadata('auto_backup_enabled');
+        if (enabled != null && enabled.toLowerCase() == 'true') {
+          // Reflect persisted preference but do NOT start timers or run backups just because
+          // the Settings screen was opened. Starting/stopping the periodic job is the
+          // responsibility of the user via the toggle (onChanged) or the higher-level app
+          // lifecycle code.
+          if (mounted) setState(() { _autoBackupEnabled = true; });
+        }
+      } catch (e) {
+        debugPrint('Failed to load auto_backup_enabled metadata: $e');
+      }
     }();
+    // Allow prompting after initial UI has rendered to avoid dialogs during navigation/build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _allowPrompt = true;
+    });
+  }
+
+  void _startAutoBackupTimer() {
+    // Cancel existing timer if any
+    _autoBackupTimer?.cancel();
+    _autoBackupTimer = Timer.periodic(const Duration(hours: 24), (_) async {
+      try {
+        final repo = await NotesRepository.instance;
+        final json = await repo.exportBackupJson();
+        if (json == null) {
+          debugPrint('Auto-backup: export returned null');
+          return;
+        }
+        final ok = await _writeBackupToFile(json, promptSave: false);
+        if (ok && mounted) setState(() { _lastAutoBackup = DateTime.now(); });
+      } catch (e) {
+        debugPrint('Auto-backup timer job failed: $e');
+      }
+    });
   }
 
   @override
@@ -1018,7 +1260,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    l10n.version,
+                    _appVersion.isNotEmpty ? '${l10n.version}: $_appVersion' : l10n.version,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -1037,6 +1279,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'ملاحظة قصيرة (بالعربية): غيّر رقم الإصدار عندما تقوم بإصدار تحديث يتضمن ميزات جديدة ملحوظة أو تغيّرات لا تتوافق مع الإصدارات السابقة. لتعديل الإصدار، افتح الملف pubspec.yaml في جذر المشروع وعدّل الحقل version ثم أعد بناء التطبيق (flutter build).',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),

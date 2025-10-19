@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.annotation.NonNull
 import androidx.documentfile.provider.DocumentFile
 import io.flutter.embedding.android.FlutterActivity
@@ -102,9 +103,14 @@ class MainActivity : FlutterActivity() {
 				val uri = data.data
 				if (uri != null) {
 					try {
-						// Persist permission
-						val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-						contentResolver.takePersistableUriPermission(uri, takeFlags)
+							// Persist permission using the flags provided by the returned intent (more reliable)
+							try {
+								val takeFlags = data.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+								contentResolver.takePersistableUriPermission(uri, takeFlags)
+								Log.d("MainActivity", "takePersistableUriPermission called with flags=$takeFlags for uri=$uri")
+							} catch (e: Exception) {
+								Log.d("MainActivity", "takePersistableUriPermission failed: ${e.localizedMessage}")
+							}
 					} catch (e: Exception) {
 						// ignore
 					}
