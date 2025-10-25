@@ -19,6 +19,8 @@ pluginManagement {
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "8.7.0" apply false
+    // Some transitive Android artifacts bring Kotlin 2.2.x metadata. Set the
+    // plugin to 2.2.0 so the compiler and stdlib metadata versions align.
     id("org.jetbrains.kotlin.android") version "2.2.0" apply false
 }
 

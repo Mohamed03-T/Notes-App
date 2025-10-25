@@ -17,6 +17,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/database/database_helper.dart';
 import '../../repositories/notes_repository.dart';
+import '../../services/backup/backup_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../backup_onboarding_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 // conditional import for web download helper
 import '../../utils/web_file_utils_stub.dart'
@@ -52,6 +55,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // Refresh backup-related info shown in the UI (last backup time, chosen folder, auto-backup enabled)
+  Future<void> _refreshBackupInfo() async {
+    try {
+      final last = await BackupService.instance.getLastBackupTime();
+      final folder = await BackupService.instance.getBackupFolder();
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool('auto_backup_enabled') ?? false;
+      if (mounted) setState(() {
+        _lastAutoBackup = last;
+        _backupDirPath = folder;
+        _autoBackupEnabled = enabled;
+      });
+    } catch (e) {
+      debugPrint('Failed to refresh backup info: $e');
+    }
+  }
+
   Future<String?> _requestTreeAccess() async {
     try {
       final res = await _storageChannel.invokeMethod<String>('requestTreeAccess');
@@ -66,20 +86,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       Directory? targetDir;
       if (kIsWeb) {
-        // On web we won't use path_provider; handled later by webDownloadString
         targetDir = null;
       } else {
         try {
-          // Prefer Downloads on platforms that support it
           targetDir = await getDownloadsDirectory();
         } catch (_) {
-          // This can throw MissingPluginException if native plugin isn't registered
           targetDir = null;
         }
       }
 
       if (targetDir == null) {
-        // On Android, try using external storage Downloads directory
         try {
           final downloadsDirs = await getExternalStorageDirectories(type: StorageDirectory.downloads);
           if (downloadsDirs != null && downloadsDirs.isNotEmpty) {
@@ -87,8 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           } else {
             final extDir = await getExternalStorageDirectory();
             if (extDir != null) {
-              // Try to find a Downloads folder relative to extDir
-              final candidate = Directory('${extDir.path}/Download');
+              final candidate = Directory('${extDir.path}${Platform.pathSeparator}Download');
               if (await candidate.exists()) {
                 targetDir = candidate;
               } else {
@@ -100,7 +115,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           debugPrint('Error resolving storage directory: $e (${e.runtimeType})');
           debugPrint('$st');
           if (e is MissingPluginException) {
-            // path_provider not registered — fallback
             targetDir = Directory.systemTemp;
           } else {
             try {
@@ -117,16 +131,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Request storage permission on Android if writing outside app dir
       try {
         if (!kIsWeb && Platform.isAndroid) {
-          // Request standard storage permission
           final status = await Permission.storage.request();
           if (!status.isGranted) {
             debugPrint('Storage permission denied - falling back to app Documents folder');
-            // Do not fail; fall back to app-specific documents directory which does not require storage permission
             try {
               targetDir = await getApplicationDocumentsDirectory();
             } catch (e) {
               debugPrint('Failed to get application documents directory: $e');
-              // final fallback
               targetDir = Directory.systemTemp;
             }
           }
@@ -135,14 +146,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         debugPrint('Permission request failed: $e');
       }
 
-      // Use app-specific folder 'noty' and consistent backup file naming
       final safeTimestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
       final folderName = 'noty';
       final fileName = 'noty_backup_$safeTimestamp.json';
-      // If the user explicitly requested a prompt save (Export action), try asking
-      // the platform to pick a location (this lets the user save to Downloads or
-      // another public folder). If that fails or the user cancels, fall back to
-      // the app-specific 'noty' folder.
+
       if (promptSave && !kIsWeb) {
         try {
           final picked = await FilePicker.platform.saveFile(
@@ -154,30 +161,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final outFile = File(picked);
             await outFile.create(recursive: true);
             await outFile.writeAsString(json);
-            debugPrint('Backup saved to $picked (user chosen)');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('تم حفظ النسخة الاحتياطية في: $picked'),
-                behavior: SnackBarBehavior.floating,
-              ));
-            }
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ النسخة الاحتياطية في: $picked'), behavior: SnackBarBehavior.floating));
             return true;
           } else {
-            // The save dialog may not be supported on all devices/OS versions or the user cancelled.
-            // Fallback: create a temporary file and open the system share sheet so the user
-            // can save/send the backup (works reliably across platforms).
             try {
               final tmpDir = await getTemporaryDirectory();
-              final tmpFile = File('${tmpDir.path}/$fileName');
+              final tmpFile = File('${tmpDir.path}${Platform.pathSeparator}$fileName');
               await tmpFile.create(recursive: true);
               await tmpFile.writeAsString(json);
               await Share.shareFiles([tmpFile.path], text: 'نسخة احتياطية لتطبيق Noty');
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('تم فتح نافذة المشاركة لحفظ أو إرسال النسخة الاحتياطية'),
-                  behavior: SnackBarBehavior.floating,
-                ));
-              }
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم فتح نافذة المشاركة لحفظ أو إرسال النسخة الاحتياطية'), behavior: SnackBarBehavior.floating));
               return true;
             } catch (e) {
               debugPrint('share fallback failed: $e');
@@ -185,41 +178,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }
         } catch (e) {
           debugPrint('saveFile dialog failed: $e');
-          // Continue to fallback below
         }
       }
+
       if (kIsWeb) {
         final ok = await webDownloadString(fileName, json);
-        if (ok) {
-          debugPrint('Backup downloaded in browser');
-        }
+        if (ok) debugPrint('Backup downloaded in browser');
         return ok;
       }
 
-      // If user selected a persistent backup directory, try it first
       if (_backupDirPath != null && _backupDirPath!.isNotEmpty) {
         try {
-          debugPrint('Attempting to write backup to user-selected dir: ${_backupDirPath}');
           final userDir = Directory(_backupDirPath!);
-          debugPrint('userDir.exists(): ${await userDir.exists()}');
-          if (!await userDir.exists()) {
-            debugPrint('userDir does not exist, trying to create it');
-            await userDir.create(recursive: true);
-          }
-          final userFile = File('${userDir.path}/$fileName');
-          debugPrint('Creating file at ${userFile.path}');
+          if (!await userDir.exists()) await userDir.create(recursive: true);
+          final userFile = File('${userDir.path}${Platform.pathSeparator}$fileName');
           await userFile.create(recursive: true);
           await userFile.writeAsString(json);
-          // prune older backups in this folder
           await _pruneOldBackups(userDir, 'noty_backup_');
-          debugPrint('Backup saved to ${userFile.path} (user folder)');
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ النسخة الاحتياطية في: ${userFile.path}'), behavior: SnackBarBehavior.floating));
           return true;
-          } catch (e) {
+        } catch (e) {
           debugPrint('Failed to write to user backup dir $_backupDirPath: $e');
-          debugPrint(StackTrace.current.toString());
-          // Do not automatically open SAF/document tree during background/automatic flows.
-          // Only attempt SAF if the caller explicitly requested promptSave (user-initiated save).
+          // SAF fallback only on explicit promptSave
           if (!kIsWeb && Platform.isAndroid && promptSave) {
             try {
               final treeUri = await _requestTreeAccess();
@@ -231,9 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   'bytes': bytes,
                 });
                 if (ok == true) {
-                  try {
-                    await _storageChannel.invokeMethod('pruneTreeBackups', {'treeUri': treeUri, 'prefix': 'noty_backup_', 'keep': 3});
-                  } catch (_) {}
+                  try { await _storageChannel.invokeMethod('pruneTreeBackups', {'treeUri': treeUri, 'prefix': 'noty_backup_', 'keep': 3}); } catch (_) {}
                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ النسخة الاحتياطية في المجلد المختار عبر صلاحية النظام.'), behavior: SnackBarBehavior.floating));
                   return true;
                 }
@@ -244,52 +222,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           } else {
             debugPrint('Skipping automatic SAF prompt (promptSave=$promptSave, allowPrompt=$_allowPrompt)');
           }
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الحفظ في المجلد المختار، سيتم الحفظ في مجلد التطبيق بدلاً منه. خطأ: ${e.toString()}'), behavior: SnackBarBehavior.floating));
-          }
-          // Continue to fallback behavior
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الحفظ في المجلد المختار، سيتم الحفظ في مجلد التطبيق بدلاً منه. خطأ: ${e.toString()}'), behavior: SnackBarBehavior.floating));
         }
       }
 
-      // Ensure the app-specific folder exists inside the chosen targetDir
-      final appDir = Directory('${targetDir!.path}/$folderName');
+      final appDir = Directory('${targetDir!.path}${Platform.pathSeparator}$folderName');
       if (!await appDir.exists()) {
-        try {
-          await appDir.create(recursive: true);
-        } catch (e) {
-          // Fallback to targetDir if creation fails
-          debugPrint('Failed to create app folder $folderName: $e');
-        }
+        try { await appDir.create(recursive: true); } catch (e) { debugPrint('Failed to create app folder $folderName: $e'); }
       }
-
-      final file = File('${appDir.path}/$fileName');
+      final file = File('${appDir.path}${Platform.pathSeparator}$fileName');
       await file.create(recursive: true);
       await file.writeAsString(json);
-
-      // prune older backups in appDir as well
       await _pruneOldBackups(appDir, 'noty_backup_');
-
-      debugPrint('Backup saved to ${file.path}');
-      if (mounted) {
-        final visiblePath = file.path;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('تم حفظ النسخة الاحتياطية في: $visiblePath'),
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ النسخة الاحتياطية في: ${file.path}'), behavior: SnackBarBehavior.floating));
       return true;
     } catch (e) {
       debugPrint('Failed to write backup: $e (${e.runtimeType})');
-      debugPrint(StackTrace.current.toString());
-      if (mounted) {
-        final msg = e is MissingPluginException
-            ? 'المكوّنات الأصلية غير مسجلة. أعد تشغيل التطبيق (full restart) ثم حاول مرة أخرى.'
-            : 'فشل في حفظ النسخة الاحتياطية: ${e.toString()}';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(msg),
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل في حفظ النسخة الاحتياطية: ${e.toString()}')));
       return false;
     }
   }
@@ -719,39 +668,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: Icons.backup,
                       value: _autoBackupEnabled,
                       onChanged: (val) async {
-                        setState(() => _autoBackupEnabled = val);
-                        // persist setting
-                        try { await DatabaseHelper.instance.setMetadata('auto_backup_enabled', val ? 'true' : 'false'); } catch (_) {}
+                        // If enabling, show the onboarding modal once (or when not shown before)
                         if (val) {
-                          // perform an immediate backup now, but only prompt the user to choose a folder
-                          // if they haven't been prompted in the last 24 hours.
+                          final shownRaw = await DatabaseHelper.instance.getMetadata('auto_backup_onboarding_shown');
+                          final alreadyShown = shownRaw != null && shownRaw == 'true';
+                          String? action;
+                          if (!alreadyShown && mounted) {
+                            action = await Navigator.of(context).push<String?>(MaterialPageRoute(builder: (_) => const BackupOnboardingScreen(), fullscreenDialog: true));
+                            // record that we've shown onboarding
+                            try { await DatabaseHelper.instance.setMetadata('auto_backup_onboarding_shown', 'true'); } catch (_) {}
+                          }
+
+                          // Handle action from onboarding (pick/grant/use_app/remind)
+                          // If user chose 'remind', do not enable auto-backup
+                          if (action == 'remind') {
+                            if (mounted) {
+                              setState(() => _autoBackupEnabled = false);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.autoBackupPeriodicEnabledSnackOff), behavior: SnackBarBehavior.floating));
+                            }
+                            try { await DatabaseHelper.instance.setMetadata('auto_backup_enabled', 'false'); } catch (_) {}
+                            return;
+                          }
+
+                          // Proceed to enable and perform first backup according to chosen action
+                          setState(() => _autoBackupEnabled = true);
+                          // Persist and schedule via BackupService
+                          await BackupService.instance.setAutoBackupEnabled(true);
+                          try { await DatabaseHelper.instance.setMetadata('auto_backup_enabled', 'true'); } catch (_) {}
+
                           final repo = await NotesRepository.instance;
                           final json = await repo.exportBackupJson();
                           if (json != null) {
-                            final shouldPrompt = _backupDirPath == null && await _shouldPromptForBackupFolder();
-                            if (shouldPrompt) {
-                              final accepted = await _showFolderExplainAndAsk();
-                              // record the prompt time regardless of choice so we don't nag repeatedly
-                              try { await DatabaseHelper.instance.setMetadata('last_backup_folder_prompt', DateTime.now().toIso8601String()); } catch (_) {}
-                              if (accepted) {
-                                await _interactivePickFolderAndSave(json);
-                                if (mounted) setState(() { _lastAutoBackup = DateTime.now(); });
-                              } else {
+                            if (action == 'pick') {
+                              final ok = await _interactivePickFolderAndSave(json);
+                              if (ok && mounted) setState(() { _lastAutoBackup = DateTime.now(); });
+                            } else if (action == 'grant') {
+                              final treeUri = await _requestTreeAccess();
+                              if (treeUri != null && treeUri.isNotEmpty) {
+                                await DatabaseHelper.instance.setMetadata('backup_dir', treeUri);
+                                if (mounted) setState(() { _backupDirPath = treeUri; });
                                 final ok = await _writeBackupToFile(json, promptSave: false);
                                 if (ok && mounted) setState(() { _lastAutoBackup = DateTime.now(); });
                               }
                             } else {
+                              // default: use app folder
                               final ok = await _writeBackupToFile(json, promptSave: false);
                               if (ok && mounted) setState(() { _lastAutoBackup = DateTime.now(); });
                             }
                           }
-                          // Start periodic timer
+
+                          // start local in-memory timer for foreground behavior
                           _startAutoBackupTimer();
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.autoBackupPeriodicEnabledSnackOn), behavior: SnackBarBehavior.floating));
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.autoBackupPeriodicEnabledSnackOn), behavior: SnackBarBehavior.floating));
                         } else {
+                          // disabling
+                          setState(() => _autoBackupEnabled = false);
+                          // cancel both in-memory timer and scheduled background job
                           _autoBackupTimer?.cancel();
                           _autoBackupTimer = null;
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.autoBackupPeriodicEnabledSnackOff), behavior: SnackBarBehavior.floating));
+                          await BackupService.instance.setAutoBackupEnabled(false);
+                          try { await DatabaseHelper.instance.setMetadata('auto_backup_enabled', 'false'); } catch (_) {}
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.autoBackupPeriodicEnabledSnackOff), behavior: SnackBarBehavior.floating));
+                        }
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _buildListTile(
+                      title: 'نسخ احتياطي يدوي',
+                      subtitle: _lastAutoBackup != null ? 'آخر نسخ: ${_lastAutoBackup!.toLocal()}' : 'لم يتم إنشاء نسخ بعد',
+                      icon: Icons.backup,
+                      onTap: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final ok = await BackupService.instance.createManualBackup();
+                        if (ok) {
+                          if (mounted) setState(() { _lastAutoBackup = DateTime.now(); });
+                          messenger.showSnackBar(SnackBar(content: Text('تم إنشاء نسخة احتياطية يدوياً.'), behavior: SnackBarBehavior.floating));
+                        } else {
+                          messenger.showSnackBar(SnackBar(content: Text('فشل إنشاء النسخة الاحتياطية اليدوية.'), behavior: SnackBarBehavior.floating));
                         }
                       },
                     ),
@@ -991,6 +984,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } catch (e) {
         debugPrint('Failed to load auto_backup_enabled metadata: $e');
       }
+      // Refresh displayed backup info from BackupService/SharedPreferences
+      await _refreshBackupInfo();
     }();
     // Allow prompting after initial UI has rendered to avoid dialogs during navigation/build
     WidgetsBinding.instance.addPostFrameCallback((_) {
